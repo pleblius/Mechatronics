@@ -18,48 +18,36 @@ void motorSetup() {
 /*  Drives each wheel according to its assigned speed.
  *  Speeds should be given as a decimal fraction of max speed.
  */
-void wheelDrive(float leftSpeed, float rightSpeed) {
-  float leftDir = 1.;
-  float rightDir = 1.;
-  int leftOutput, rightOutput;
-
-  if (leftSpeed < 0) leftDir = 0.;
-  if (rightSpeed < 0) rightDir = 0.;
-  
-  // Get left and right tire speeds
-  float leftAnalog = leftSpeed*5.0;                        
-  float rightAnalog = rightSpeed*5.0;                      
-
-  leftOutput = map(abs(leftAnalog), 0.0, 5.0, 0, 255);    
-  rightOutput = map(abs(rightAnalog), 0.0, 5.0, 0, 255);  
-
-  analogWrite(IN1, leftDir*leftOutput);
-  analogWrite(IN2, (1.-leftDir)*leftOutput);
-  analogWrite(IN3, rightDir*rightOutput);
-  analogWrite(IN4, (1.-rightDir)*rightOutput);
-
-  if (debugMode) {
-    debugPrint("Left wheel speed: ");
-    debugPrintln(leftWheelSpeed);
-    debugPrint("Right wheel speed: ");
-    debugPrintln(rightWheelSpeed);
-  }
+void wheelDrive() {
+  analogWrite(IN1, DC1Speed);
+  analogWrite(IN2, DC2Speed);
+  analogWrite(IN3, DC3Speed);
+  analogWrite(IN4, DC4Speed);
 }
 
 /*  Gets the speed for a wheel given the desired direction, the desired average speed, and the desired turn radius.
  *  Average speed should be given as a decimal fraction between 0 and maxMotorSpeed.
  *  Turn radius should be given as a positive floating point number.
  */
-void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius, float &leftSpeed, float &rightSpeed) {
+void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
 
   if (debugMode) {
     debugPrintln("Getting wheel speeds for the following parameters:");
     debugPrint("Direction: "); debugPrintln(dir);
   }
+  
   // If direction is straight, simply return desired speed
   if (dir == FORWARD || dir == REVERSE) {
-    leftSpeed = dir*avgFwdSpeed;
-    rightSpeed = leftSpeed;
+    leftWheelSpeed = dir*avgFwdSpeed;
+    rightWheelSpeed = leftWheelSpeed;
+
+    if (debugMode) {
+      debugPrint("Left wheel speed: ");
+      debugPrintln(leftWheelSpeed);
+      debugPrint("Right wheel speed: ");
+      debugPrintln(rightWheelSpeed);
+    }
+
     return;
   }
   
@@ -69,8 +57,17 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius, float &leftS
 
   // Check divide by zero
   if (radius < .01) {
-    leftSpeed = dir/2.*maxMotorSpeed;
-    rightSpeed = -leftSpeed;
+    leftWheelSpeed = dir/2.*maxMotorSpeed;
+    rightWheelSpeed = -leftWheelSpeed;
+
+    if (debugMode) {
+      debugPrint("Left wheel speed: ");
+      debugPrintln(leftWheelSpeed);
+      debugPrint("Right wheel speed: ");
+      debugPrintln(rightWheelSpeed);
+    }
+
+    return;
   }
   
   // Calculate inner and outer radius speeds, constrained to max motor speed
@@ -80,22 +77,58 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius, float &leftS
 
   // Assign speeds to wheels based on turn direction
   if (dir == RIGHT) {
-    rightSpeed = v1;
-    leftSpeed = v2;
+    rightWheelSpeed = v1;
+    leftWheelSpeed = v2;
   } else if (dir == LEFT) {
-    rightSpeed = v2;
-    leftSpeed = v1;
+    rightWheelSpeed = v2;
+    leftWheelSpeed = v1;
   } else {
-    rightSpeed = 0.;
-    leftSpeed = 0.;
+    rightWheelSpeed = 0.;
+    leftWheelSpeed = 0.;
   }
+
+  if (debugMode) {
+    debugPrint("Left wheel speed: ");
+    debugPrintln(leftWheelSpeed);
+    debugPrint("Right wheel speed: ");
+    debugPrintln(rightWheelSpeed);
+  }
+
+  getPinSpeeds(dir);
+}
+
+/*  Converts the desired wheel speeds into analog pin speeds.
+ *  Caches values in global variables for faster computation and smaller loop deltas.
+ */
+void getPinSpeeds(Direction dir) {
+  float leftDir = 1.;
+  float rightDir = 1.;
+
+  if (leftWheelSpeed < 0) leftDir = 0.;
+  if (rightWheelSpeed < 0) rightDir = 0.;
+  
+  // Get left and right tire speeds
+  float leftAnalog = leftWheelSpeed*5.0;                        
+  float rightAnalog = rightWheelSpeed*5.0;                      
+
+  int leftOutput = map(abs(leftAnalog), 0.0, 5.0, 0, 255);    
+  int rightOutput = map(abs(rightAnalog), 0.0, 5.0, 0, 255);
+
+  DC1Speed = leftDir*leftOutput;
+  DC2Speed = (1.-leftDir)*leftOutput;
+  DC3Speed = (1.-rightDir)*rightOutput;
+  DC4Speed = rightDir*rightOutput;
 }
 
 /*  Brakes the DC Motors controlling the wheels.
  */
 void wheelBrake() {
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, HIGH);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, HIGH);
+  DC1Speed = 255;
+  DC2Speed = 255;
+  DC3Speed = 255;
+  DC4Speed = 255;
+  
+  if (debugMode) {
+    Serial.println("Braking.");
+  }
 }

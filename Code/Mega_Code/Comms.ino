@@ -3,55 +3,64 @@
  * Serial3 controls wireless communication with the UNO, on pins 15 (RX) and 14 (TX). */
 void serialSetup() {
   Serial.begin(9600);
-
   Serial3.begin(9600);
+  delay(1000);
 
-  // This code deliberately blocks while waiting for a response.
-  checkManualControl();
+  // Send manual prompt
+  sendTransmission('M', 0);
 }
 
 /*  Gets user input if manual control is necessary. If so, enables it.
+ *  WARNING: This code blocks.
  */
 void checkManualControl() {
-  debugPrintln("Manual Control Mode? (y/n)");
+  if (receiveTransmission()) {
+    Serial.println(rxChar);
+    Serial.println(rxInt);
+  
+    switch (rxChar) {
+      case 'y':
+      case 'Y': {
+        state = MANUAL;
+        manualState = READY;
 
-  while (Serial3.available() < 1);
-  char input = Serial3.read();
+        sendTransmission('M', 1);
 
-  switch (input) {
-    case 'y':
-    case 'Y':
-      state = MANUAL;
-      manualState = READY;
-      debugPrintln("Entering manual control.");
-      debugPrintln("Please enter input: [char] [int]");
-      break;
-    case 'n':
-    case 'N':
-      break;
+      } break;
+      
+      case 'n':
+      case 'N': {
+        sendTransmission('B', 0);
+        
+      } break;
+
+      default: {
+        sendTransmission('X', 0);
+        delay(100);
+        sendTransmission('M', 0);
+      }
+    }
   }
 }
 
-/*  Receives wireless communication via port Serial3 from the Arduino Uno. Communication is done in packets of three bytes:
- *  Byte 1: The number 255 (indicates packet beginning).
- *  Byte 2: A character, can be either 'b' (battery), 'w' (wheel), 'f' (fan), 'R' (Restart), or 'S' (Start).
- *  Byte 3: An integer, corresponding to a position or an empty placeholder value.
- *  Takes in two pointers to pass back to calling function for operational parsing.
+/*  Receives a packet transmission from the Arduino Mega.
+ *  Packet should be of form:
+ *  255
+ *  [char]
+ *  [int]
+ *  Returns true if a packet is received, false otherwise.
  */
-bool wirelessRead(char &ch, int &i) {
-  // Check wireless buffer
+bool receiveTransmission() {
   if (Serial3.available() > 2) {
     if (Serial3.read() == 255) {
-      // Char value, should be 'b', 'w', 'f', 'R', or 'S'
-      ch = Serial3.read();
-      // Int value
-      i = Serial3.read();
+      rxChar = Serial3.read();
+      rxInt = Serial3.read();
 
       if (debugMode) {
-        debugPrint("Received characters: ");
-        debugPrint(ch);
-        debugPrint(" ");
-        debugPrintln(i + 48);
+        debugPrint("Received character: ");
+        debugPrintln(rxChar);
+        debugPrint("Received Int: ");
+        debugPrintln(rxInt);
       }
 
       return true;
@@ -61,30 +70,55 @@ bool wirelessRead(char &ch, int &i) {
   return false;
 }
 
+/*  Sends a serialized transmission in the order:
+ *  255
+ *  Character
+ *  Integer
+ */
+void sendTransmission(char txChar, int txInt) {
+  Serial3.write(255);
+  Serial3.write(txChar);
+  Serial3.write(txInt);
+}
+
 /*  Sends the given string to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
-void debugPrintln(char str[]) {
-  Serial3.println(str);
+void debugPrintln(char* str) {
+  Serial.println(str);
 }
 
 /*  Sends the given string to the serial comms devicce, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
-void debugPrint(char str[]) {
-  Serial3.print(str);
+void debugPrint(char* str) {
+  Serial.print(str);
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(float f) {
-  Serial3.println(f);
+  Serial.println(f);
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(float f) {
-  Serial3.print(f);
+  Serial.print(f);
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Ends with a newline character.
+ */
+void debugPrintln(int f) {
+  Serial.println(f);
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Does not terminate the line.
+ */
+void debugPrint(int f) {
+  Serial.print(f);
 }
