@@ -9,26 +9,60 @@ char txChar = 0;
 int txInt = 0;
 
 enum State {
-  NO_INPUT,
-  CHAR_INPUT
+  SENDING,
+  RECEIVING,
+  GETTING
 };
 enum State state;
 
 void setup() {
-  state = NO_INPUT;
-
   Serial.begin(9600);
   mySerial.begin(9600);
 
-  serialOutput();
+  state = RECEIVING;
 }
 
 void loop() {
-  receiveTransmission();
+  switch (state) {
+    case SENDING: {
+      txChar = 0;
+      txInt = 0;
+      
+      Serial.println("Waiting for data.");
 
-  getUserInput();
+      state = RECEIVING;
+    } break;
+
+    case RECEIVING: {
+      int input = 0;
+
+      if (mySerial.available() > 0) {
+        input = mySerial.read();
+      }
+
+      if (input == 255) {
+        printPrompt();
+
+        state = GETTING;
+      }
+      else if (input == 254) {
+        receiveTransmission();
+      }
+    } break;
+
+    case GETTING: {
+      if (getUserInput()) {
+        sendTransmission(txChar, txInt);
+
+        state = SENDING;
+      }
+    } break;
+  }
 }
 
+/*  Opens every character in the wireless serial bus and prints it to the console.
+ *  WARNING: This code blocks.
+ */
 void receiveTransmission() {
   char input;
 
@@ -39,49 +73,48 @@ void receiveTransmission() {
   }
 }
 
-void getUserInput() {
-  delay(1000);
+/*  Prompts the user for data.
+ */
+void printPrompt() {
+  Serial.println("Please input a [char][int] into the serial monitor.");
+}
+
+/*  Gets input from the user. Input needs to be in the form [char][int].
+ *  Once data is acquired, it is transmitted to the robot.
+ */
+bool getUserInput() {
+  static bool gotChar = false;
+
   if (Serial.available() > 0) {
-    switch (state) {
-      case NO_INPUT:
-        txChar = Serial.read();
+    if (!gotChar) {
+      txChar = Serial.read();
 
-        Serial.print(txChar);
-        
-        state = CHAR_INPUT;
-        serialOutput();
+      Serial.print("Char: ");
+      Serial.println(txChar);
 
-        break;
-      case CHAR_INPUT:
-        while (Serial.available() > 0) {
-          txInt = Serial.read() - 48 + 10*txInt;
-        }
+      gotChar = true;
+    }
+    else {
+      while (Serial.available() > 0) {
+        txInt = Serial.read() - 48 + 10*txInt;
+      }
 
-        Serial.print(txInt);
-        
-        state = NO_INPUT;
-        serialOutput();
+      Serial.print("Int: ");
+      Serial.println(txInt);
 
-        sendTransmission(txChar, txInt);
-        txChar = 0;
-        txInt = 0;
-
-        break;
+      gotChar = false;
+      return true;
     }
   }
+
+  return false;
 }
 
-void serialOutput() {
-  switch (state) {
-    case NO_INPUT:
-      Serial.print("\nChar input: ");
-      break;
-    case CHAR_INPUT:
-      Serial.print("\nInt input: ");
-      break;
-  }
-}
-
+/* Sends a serialized transmission in the order:
+ *  255
+ *  Character
+ *  Integer
+ */
 void sendTransmission(char ch, int i) {
   mySerial.write(255);
   mySerial.write(ch);
