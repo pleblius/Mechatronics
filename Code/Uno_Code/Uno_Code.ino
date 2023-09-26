@@ -7,6 +7,8 @@ SoftwareSerial mySerial(rxPin, txPin);
 
 char txChar = 0;
 int txInt = 0;
+char rxChar = 0;
+int rxInt = 0;
 
 enum State {
   SENDING,
@@ -36,33 +38,16 @@ void loop() {
     } break;
 
     case RECEIVING: {
-      int input = 0;
-
-      if (mySerial.available() > 0) {
-        input = mySerial.read();
-      }
-
-      delay(500);
-
-      if (input == 255) {
-        printPrompt();
+      if (receiveTransmission()) {
+        parseTransmission();
 
         state = GETTING;
       }
-      else if (input == 254) {
-        Serial.println('x');
-
-        while (mySerial.available() > 0) {
-          Serial.print((char) mySerial.read());
-        }
-      }
-
-      input = 0;
     } break;
 
     case GETTING: {
       if (getUserInput()) {
-        sendTransmission(txChar, txInt);
+        sendTransmission();
 
         state = SENDING;
       }
@@ -78,6 +63,7 @@ void printPrompt() {
 
 /*  Gets input from the user. Input needs to be in the form [char][int].
  *  Once data is acquired, it is transmitted to the robot.
+ *  Returns true if both user inputs have been acquired, false otherwise.
  */
 bool getUserInput() {
   static bool gotChar = false;
@@ -107,13 +93,126 @@ bool getUserInput() {
   return false;
 }
 
-/* Sends a serialized transmission in the order:
+/*  Receives a packet transmission from the Arduino Mega.
+ *  Packet should be of form:
+ *  255
+ *  [char]
+ *  [int]
+ *  Returns true if a packet is received, false otherwise.
+ */
+bool receiveTransmission() {
+  if (mySerial.available() > 2) {
+    if (mySerial.read() == 255) {
+      rxChar = mySerial.read();
+      rxInt = mySerial.read();
+
+      Serial.print("Received character: ");
+      Serial.println(rxChar);
+      Serial.print("Received Int: ");
+      Serial.println(rxInt);
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/*  Parses the received transmission to display data for the user.
+ *  Conditions to parse:
+ *    M: Manual
+ *      0: Manual prompt
+ *      1: Available manual commands
+ *    B: Blocks
+ *      0: Add first block to chassis
+ *      1: Add additional blocks to chassis
+ *    S: Start
+ *      0: Start prompt
+ *      1: Starting
+ *    R: Restart
+ *      0: Restart prompt
+ *      1: Restarting
+ */
+void parseTransmission() {
+  switch(rxChar) {
+    case 'M': {
+      switch(rxInt) {
+        case 0: {
+          Serial.println("Manual control?");
+          Serial.println("Input (y/n) and any number");
+
+        } break;
+
+        case 1: {
+          Serial.println("Manual mode entered. The following commands are available:");
+          Serial.println("Drive forward [int] seconds: f/F [int]");
+          Serial.println("Reverse [int] seconds: b/B [int]");
+          Serial.println("Turn left [int] seconds: l/L [int]");
+          Serial.println("Turn right [int] seconds: r/R [int]");
+          Serial.println("Move turret [int] degrees: t/T [int] left: [0 90] right: [91 180]");
+          Serial.println("Move arm [int] degrees: a/A [int] left: [0 90] right: [91 180]");
+          Serial.println("Move wrist [int] degrees: w/W [int] left: [0 90] right: [91 180]");
+          Serial.println("Move arm to vertical position [int]: z/Z [int] [0 1]");
+
+        } break;
+      }
+    } break;
+
+    case 'B': {
+      switch(rxInt) {
+        case 0: {
+          Serial.println("Beginning autonomous processing.");
+          Serial.println("Add block to chassis: [blocktype][position]");
+          Serial.println("Block type can be w/W, b/B, or f/F");
+
+        } break;
+
+        case 1: {
+          Serial.println("Add additional blocks if desired:");
+
+        } break;
+      }
+    } break;
+
+    case 'S': {
+      switch(rxInt) {
+        case 0: {
+          Serial.println("Chassis set up. Awaiting START command: s/S 0");
+
+        } break;
+
+        case 1: {
+          Serial.println("Robot beginning autonomous operations.");
+
+        } break;
+      }
+    } break;
+
+    case 'R': {
+      switch(rxInt) {
+        case 0: {
+          Serial.println("RESTART command available: r/R 0");
+        } break;
+
+        case 1: {
+          Serial.println("RESTART initiated!");
+        } break;
+      }
+    } break;
+
+    default: {
+      Serial.println("Invalid command received.");
+    } break;
+  }
+}
+
+/*  Sends a serialized transmission in the order:
  *  255
  *  Character
  *  Integer
  */
-void sendTransmission(char ch, int i) {
+void sendTransmission() {
   mySerial.write(255);
-  mySerial.write(ch);
-  mySerial.write(i);
+  mySerial.write(txChar);
+  mySerial.write(txInt);
 }

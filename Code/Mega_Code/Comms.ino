@@ -14,61 +14,45 @@ void serialSetup() {
  *  WARNING: This code blocks.
  */
 void checkManualControl() {
-  debugPrintln("Manual Control Mode? (y/n)");
-  delay(1000);
-  sendGetSignal();
+  // Send manual prompt
+  sendTransmission('M', 0);
 
-  char xCh;
-  int xInt;
-
-  while (!wirelessRead(xCh, xInt));
+  while (!receiveTransmission());
   
-  switch (xCh) {
+  switch (rxChar) {
     case 'y':
     case 'Y': {
       state = MANUAL;
       manualState = READY;
 
-      debugPrintln("Entering manual control.");
-      delay(1000);
-      debugPrintln("Please enter input: [char][int]");
-      delay(1000);
+      sendTransmission('M', 1);
+
     } break;
     case 'n':
     case 'N': {
-      debugPrintln("Remaining in automatic control.");
-      delay(1000);
-      debugPrintln("Please enter input: [char][int]");
-      delay(1000);
+      sendTransmission('B', 0);
+      
     } break;
   }
 }
 
-/*  Receives wireless communication via port Serial3 from the Arduino Uno. Communication is done in packets of three bytes:
- *  Byte 1: The number 255 (indicates packet beginning).
- *  Byte 2: A character, can be either 'b' (battery), 'w' (wheel), 'f' (fan), 'R' (Restart), or 'S' (Start).
- *  Byte 3: An integer, corresponding to a position or an empty placeholder value.
- *  Takes in two pointers to pass back to calling function for operational parsing.
+/*  Receives a packet transmission from the Arduino Mega.
+ *  Packet should be of form:
+ *  255
+ *  [char]
+ *  [int]
+ *  Returns true if a packet is received, false otherwise.
  */
-bool wirelessRead(char &ch, int &i) {
-  // Check wireless buffer
-  if (Serial3.available() > 2) {
-    if (Serial3.read() == 255) {
-      // Char value, should be 'b', 'w', 'f', 'R', or 'S'
-      ch = Serial3.read();
-      // Int value
-      i = Serial3.read();
+bool receiveTransmission() {
+  if (mySerial.available() > 2) {
+    if (mySerial.read() == 255) {
+      rxChar = mySerial.read();
+      rxInt = mySerial.read();
 
-      if (debugMode) {
-        debugPrint("Received characters: ");
-        delay(100);
-        debugPrint(ch);
-        delay(100);
-        debugPrint(" ");
-        delay(100);
-        debugPrintln(i + 48);
-        delay(100);
-      }
+      Serial.print("Received character: ");
+      Serial.println(rxChar);
+      Serial.print("Received Int: ");
+      Serial.println(rxInt);
 
       return true;
     }
@@ -77,56 +61,58 @@ bool wirelessRead(char &ch, int &i) {
   return false;
 }
 
+  return false;
+}
+
+/*  Sends a serialized transmission in the order:
+ *  255
+ *  Character
+ *  Integer
+ */
+void sendTransmission(char txChar, int txInt) {
+  Serial3.write(255);
+  Serial3.write(txChar);
+  Serial3.write(txInt);
+}
+
 /*  Sends the given string to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(char* str) {
-  Serial3.write(254);
-  Serial3.println(str);
+  Serial.println(str);
 }
 
 /*  Sends the given string to the serial comms devicce, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(char* str) {
-  Serial3.write(254);
-  Serial3.print(str);
+  Serial.print(str);
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(float f) {
-  Serial3.write(254);
-  Serial3.println(f);
+  Serial.println(f);
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(float f) {
-  Serial3.write(254);
-  Serial3.print(f);
+  Serial.print(f);
 }
 
 /*  Sends the given int to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(int f) {
-  Serial3.write(254);
-  Serial3.println(f);
+  Serial.println(f);
 }
 
 /*  Sends the given int to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(int f) {
-  Serial3.write(254);
-  Serial3.print(f);
-}
-
-/*  Sends a signal to the Uno to get the next command from the user.
- */
-void sendGetSignal() {
-  Serial3.write(255);
+  Serial.print(f);
 }

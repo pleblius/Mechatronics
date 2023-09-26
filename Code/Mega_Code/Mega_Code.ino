@@ -90,6 +90,8 @@ enum Direction : int {
   LEFT = -2,
 };
 
+// Motor variables
+
 float maxMotorSpeed;
 float leftWheelSpeed;
 float rightWheelSpeed;
@@ -97,6 +99,11 @@ float rightWheelSpeed;
 // Robot Dimensions
 
 float wheelBase = 12.0;
+
+// Transmission variables
+
+char rxChar = 0;
+int rxInt = 0;
 
 
 void setup() {
