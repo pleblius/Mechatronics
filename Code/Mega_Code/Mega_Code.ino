@@ -96,6 +96,11 @@ float maxMotorSpeed;
 float leftWheelSpeed;
 float rightWheelSpeed;
 
+int DC1Speed;
+int DC2Speed;
+int DC3Speed;
+int DC4Speed;
+
 // Robot Dimensions
 
 float wheelBase = 12.0;

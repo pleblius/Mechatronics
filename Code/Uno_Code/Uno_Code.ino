@@ -40,8 +40,6 @@ void loop() {
     case RECEIVING: {
       if (receiveTransmission()) {
         parseTransmission();
-
-        state = GETTING;
       }
     } break;
 
@@ -123,6 +121,14 @@ bool receiveTransmission() {
  *    M: Manual
  *      0: Manual prompt
  *      1: Available manual commands
+ *      2: Driving Forward
+ *      3: Reversing
+ *      4: Turning left
+ *      5: Turning right
+ *      6: Moving turret
+ *      7: Moving arm
+ *      8: Moving wrist
+ *      9: Moving vertically
  *    B: Blocks
  *      0: Add first block to chassis
  *      1: Add additional blocks to chassis
@@ -141,6 +147,7 @@ void parseTransmission() {
           Serial.println("Manual control?");
           Serial.println("Input (y/n) and any number");
 
+          state = GETTING;
         } break;
 
         case 1: {
@@ -154,6 +161,47 @@ void parseTransmission() {
           Serial.println("Move wrist [int] degrees: w/W [int] left: [0 90] right: [91 180]");
           Serial.println("Move arm to vertical position [int]: z/Z [int] [0 1]");
 
+          state = GETTING;
+        } break;
+
+        case 2: {
+          Serial.println("Driving forward.");
+
+        } break;
+
+        case 3: {
+          Serial.println("Driving in reverse.");
+
+        } break;
+
+        case 4: {
+          Serial.println("Turning left.");
+
+        } break;
+
+        case 5: {
+          Serial.println("Turning right.");
+
+        } break;
+
+        case 6: {
+          Serial.println("Moving turret.");
+
+        } break;
+
+        case 7: {
+          Serial.println("Moving arm.");
+
+        } break;
+
+        case 8: {
+          Serial.println("Moving wrist.");
+
+        } break;
+
+        case 9: {
+          Serial.println("Moving vertically");
+
         } break;
       }
     } break;
@@ -165,10 +213,14 @@ void parseTransmission() {
           Serial.println("Add block to chassis: [blocktype][position]");
           Serial.println("Block type can be w/W, b/B, or f/F");
 
+          state = GETTING;
+
         } break;
 
         case 1: {
           Serial.println("Add additional blocks if desired:");
+
+          state = GETTING;
 
         } break;
       }
@@ -179,10 +231,13 @@ void parseTransmission() {
         case 0: {
           Serial.println("Chassis set up. Awaiting START command: s/S 0");
 
+          state = GETTING;
         } break;
 
         case 1: {
           Serial.println("Robot beginning autonomous operations.");
+
+          state = GETTING;
 
         } break;
       }
@@ -192,16 +247,23 @@ void parseTransmission() {
       switch(rxInt) {
         case 0: {
           Serial.println("RESTART command available: r/R 0");
+
+          state = GETTING;
+
         } break;
 
         case 1: {
           Serial.println("RESTART initiated!");
+
         } break;
       }
     } break;
 
     default: {
       Serial.println("Invalid command received.");
+
+      state = GETTING;
+      
     } break;
   }
 }
