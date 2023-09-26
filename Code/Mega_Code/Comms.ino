@@ -3,32 +3,44 @@
  * Serial3 controls wireless communication with the UNO, on pins 15 (RX) and 14 (TX). */
 void serialSetup() {
   Serial.begin(9600);
-
   Serial3.begin(9600);
+  delay(1000);
 
   // This code deliberately blocks while waiting for a response.
   checkManualControl();
 }
 
 /*  Gets user input if manual control is necessary. If so, enables it.
+ *  WARNING: This code blocks.
  */
 void checkManualControl() {
   debugPrintln("Manual Control Mode? (y/n)");
+  delay(1000);
+  sendGetSignal();
 
-  while (Serial3.available() < 1);
-  char input = Serial3.read();
+  char xCh;
+  int xInt;
 
-  switch (input) {
+  while (!wirelessRead(xCh, xInt));
+  
+  switch (xCh) {
     case 'y':
-    case 'Y':
+    case 'Y': {
       state = MANUAL;
       manualState = READY;
+
       debugPrintln("Entering manual control.");
-      debugPrintln("Please enter input: [char] [int]");
-      break;
+      delay(1000);
+      debugPrintln("Please enter input: [char][int]");
+      delay(1000);
+    } break;
     case 'n':
-    case 'N':
-      break;
+    case 'N': {
+      debugPrintln("Remaining in automatic control.");
+      delay(1000);
+      debugPrintln("Please enter input: [char][int]");
+      delay(1000);
+    } break;
   }
 }
 
@@ -49,9 +61,13 @@ bool wirelessRead(char &ch, int &i) {
 
       if (debugMode) {
         debugPrint("Received characters: ");
+        delay(100);
         debugPrint(ch);
+        delay(100);
         debugPrint(" ");
+        delay(100);
         debugPrintln(i + 48);
+        delay(100);
       }
 
       return true;
@@ -64,14 +80,16 @@ bool wirelessRead(char &ch, int &i) {
 /*  Sends the given string to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
-void debugPrintln(char str[]) {
+void debugPrintln(char* str) {
+  Serial3.write(254);
   Serial3.println(str);
 }
 
 /*  Sends the given string to the serial comms devicce, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
-void debugPrint(char str[]) {
+void debugPrint(char* str) {
+  Serial3.write(254);
   Serial3.print(str);
 }
 
@@ -79,6 +97,7 @@ void debugPrint(char str[]) {
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(float f) {
+  Serial3.write(254);
   Serial3.println(f);
 }
 
@@ -86,5 +105,28 @@ void debugPrintln(float f) {
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(float f) {
+  Serial3.write(254);
   Serial3.print(f);
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Ends with a newline character.
+ */
+void debugPrintln(int f) {
+  Serial3.write(254);
+  Serial3.println(f);
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Does not terminate the line.
+ */
+void debugPrint(int f) {
+  Serial3.write(254);
+  Serial3.print(f);
+}
+
+/*  Sends a signal to the Uno to get the next command from the user.
+ */
+void sendGetSignal() {
+  Serial3.write(255);
 }

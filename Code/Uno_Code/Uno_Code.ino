@@ -18,7 +18,9 @@ enum State state;
 void setup() {
   Serial.begin(9600);
   mySerial.begin(9600);
-
+  delay(1000);
+  
+  Serial.println("Welcome");
   state = RECEIVING;
 }
 
@@ -40,14 +42,22 @@ void loop() {
         input = mySerial.read();
       }
 
+      delay(500);
+
       if (input == 255) {
         printPrompt();
 
         state = GETTING;
       }
       else if (input == 254) {
-        receiveTransmission();
+        Serial.println('x');
+
+        while (mySerial.available() > 0) {
+          Serial.print((char) mySerial.read());
+        }
       }
+
+      input = 0;
     } break;
 
     case GETTING: {
@@ -57,19 +67,6 @@ void loop() {
         state = SENDING;
       }
     } break;
-  }
-}
-
-/*  Opens every character in the wireless serial bus and prints it to the console.
- *  WARNING: This code blocks.
- */
-void receiveTransmission() {
-  char input;
-
-  while (mySerial.available() > 0) {
-    input = mySerial.read();
-
-    Serial.print(input);
   }
 }
 
