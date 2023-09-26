@@ -7,10 +7,7 @@ void manualOperations(unsigned int dt) {
 
   switch (manualState) {
     case READY: {
-      // User input variables
-      char chInput;
-      int intInput;
-
+      
       if (wirelessRead()) {
         switch (rxChar) {
           case 'F':
@@ -100,7 +97,7 @@ void manualOperations(unsigned int dt) {
       wheelDrive();
 
       timer += dt;
-      
+
       if (timer > duration) {
         wheelBrake();
 
