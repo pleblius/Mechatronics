@@ -54,7 +54,8 @@ bool debugMode;
 // All other states are for automatic control/competition.
 enum RobotState {
   MANUAL,
-  STARTUP, READY,
+  STARTUP, 
+  SETUP, READY,
   DRIVING, TURNING,
   PROBING,
   ACQUIRING, GRABBING,
@@ -107,8 +108,8 @@ float wheelBase = 12.0;
 
 // Transmission variables
 
-char rxChar = 0;
-int rxInt = 0;
+char rxChar;
+int rxInt;
 
 
 void setup() {
@@ -135,17 +136,22 @@ void setup() {
 void loop() {
   // Time control variables - ms
   static unsigned long lastUpdate;
-  unsigned int dt;
+  float dt;
   
-  dt = (millis() - lastUpdate);
+  dt = (millis() - lastUpdate)/1000.;
   lastUpdate = millis();
 
   switch (state) {
+    case STARTUP: {
+      checkManualControl();
+    } break;
+
     case MANUAL: {
       manualOperations(dt);
     } break;
 
-    case STARTUP: {
+    case SETUP: {
+
 
     } break;
     

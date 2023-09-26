@@ -41,6 +41,7 @@ void loop() {
       if (receiveTransmission()) {
         parseTransmission();
       }
+
     } break;
 
     case GETTING: {
@@ -49,6 +50,7 @@ void loop() {
 
         state = SENDING;
       }
+
     } break;
   }
 }

@@ -40,6 +40,14 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
   if (dir == FORWARD || dir == REVERSE) {
     leftWheelSpeed = dir*avgFwdSpeed;
     rightWheelSpeed = leftWheelSpeed;
+
+    if (debugMode) {
+      debugPrint("Left wheel speed: ");
+      debugPrintln(leftWheelSpeed);
+      debugPrint("Right wheel speed: ");
+      debugPrintln(rightWheelSpeed);
+    }
+
     return;
   }
   
@@ -51,6 +59,15 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
   if (radius < .01) {
     leftWheelSpeed = dir/2.*maxMotorSpeed;
     rightWheelSpeed = -leftWheelSpeed;
+
+    if (debugMode) {
+      debugPrint("Left wheel speed: ");
+      debugPrintln(leftWheelSpeed);
+      debugPrint("Right wheel speed: ");
+      debugPrintln(rightWheelSpeed);
+    }
+
+    return;
   }
   
   // Calculate inner and outer radius speeds, constrained to max motor speed
@@ -94,8 +111,8 @@ void getPinSpeeds(Direction dir) {
   float leftAnalog = leftWheelSpeed*5.0;                        
   float rightAnalog = rightWheelSpeed*5.0;                      
 
-  leftOutput = map(abs(leftAnalog), 0.0, 5.0, 0, 255);    
-  rightOutput = map(abs(rightAnalog), 0.0, 5.0, 0, 255);
+  int leftOutput = map(abs(leftAnalog), 0.0, 5.0, 0, 255);    
+  int rightOutput = map(abs(rightAnalog), 0.0, 5.0, 0, 255);
 
   DC1Speed = leftDir*leftOutput;
   DC2Speed = (1.-leftDir)*leftOutput;
@@ -110,4 +127,8 @@ void wheelBrake() {
   DC2Speed = 255;
   DC3Speed = 255;
   DC4Speed = 255;
+  
+  if (debugMode) {
+    Serial.println("Braking.");
+  }
 }

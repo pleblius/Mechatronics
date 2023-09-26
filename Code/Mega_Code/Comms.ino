@@ -6,33 +6,40 @@ void serialSetup() {
   Serial3.begin(9600);
   delay(1000);
 
-  // This code deliberately blocks while waiting for a response.
-  checkManualControl();
+  // Send manual prompt
+  sendTransmission('M', 0);
 }
 
 /*  Gets user input if manual control is necessary. If so, enables it.
  *  WARNING: This code blocks.
  */
 void checkManualControl() {
-  // Send manual prompt
-  sendTransmission('M', 0);
-
-  while (!receiveTransmission());
+  if (receiveTransmission()) {
+    Serial.println(rxChar);
+    Serial.println(rxInt);
   
-  switch (rxChar) {
-    case 'y':
-    case 'Y': {
-      state = MANUAL;
-      manualState = READY;
+    switch (rxChar) {
+      case 'y':
+      case 'Y': {
+        state = MANUAL;
+        manualState = READY;
 
-      sendTransmission('M', 1);
+        sendTransmission('M', 1);
 
-    } break;
-    case 'n':
-    case 'N': {
-      sendTransmission('B', 0);
+      } break;
       
-    } break;
+      case 'n':
+      case 'N': {
+        sendTransmission('B', 0);
+        
+      } break;
+
+      default: {
+        sendTransmission('X', 0);
+        delay(100);
+        sendTransmission('M', 0);
+      }
+    }
   }
 }
 
@@ -44,22 +51,21 @@ void checkManualControl() {
  *  Returns true if a packet is received, false otherwise.
  */
 bool receiveTransmission() {
-  if (mySerial.available() > 2) {
-    if (mySerial.read() == 255) {
-      rxChar = mySerial.read();
-      rxInt = mySerial.read();
+  if (Serial3.available() > 2) {
+    if (Serial3.read() == 255) {
+      rxChar = Serial3.read();
+      rxInt = Serial3.read();
 
-      Serial.print("Received character: ");
-      Serial.println(rxChar);
-      Serial.print("Received Int: ");
-      Serial.println(rxInt);
+      if (debugMode) {
+        debugPrint("Received character: ");
+        debugPrintln(rxChar);
+        debugPrint("Received Int: ");
+        debugPrintln(rxInt);
+      }
 
       return true;
     }
   }
-
-  return false;
-}
 
   return false;
 }

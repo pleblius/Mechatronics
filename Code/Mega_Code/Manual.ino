@@ -1,14 +1,14 @@
 /*  Controls robot behavior while in the manual control operational state.
  *  Can only perform one operation at a time.
  */
-void manualOperations(unsigned int dt) {
-  static unsigned long timer;
-  static unsigned int duration;
+void manualOperations(float dt) {
+  static float timer;
+  static int duration;
 
   switch (manualState) {
     case READY: {
       
-      if (wirelessRead()) {
+      if (receiveTransmission()) {
         switch (rxChar) {
           case 'F':
           case 'f': {
@@ -35,7 +35,7 @@ void manualOperations(unsigned int dt) {
           case 'L':
           case 'l': {
             // Turn left - int seconds
-            getWheelSpeeds(LEFT, 0, 0.1);
+            getWheelSpeeds(LEFT, 0, 0);
             duration = rxInt;
 
             manualState = TURNING;
@@ -46,7 +46,7 @@ void manualOperations(unsigned int dt) {
           case 'R':
           case 'r': {
             // Turn right - int seconds
-            getWheelSpeeds(RIGHT, 0, 0.1);
+            getWheelSpeeds(RIGHT, 0, 0);
             duration = rxInt;
 
             manualState = TURNING;
@@ -89,12 +89,18 @@ void manualOperations(unsigned int dt) {
           default: break;
         }
 
-        timer = 0L;
+        timer = 0.0;
       }
     } break;
 
     case DRIVING: {
       wheelDrive();
+
+      if (debugMode) {
+        debugPrint(timer);
+        debugPrint(" ");
+        debugPrintln(dt);
+      }
 
       timer += dt;
 
