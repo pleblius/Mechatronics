@@ -41,6 +41,8 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
     leftWheelSpeed = dir*avgFwdSpeed;
     rightWheelSpeed = leftWheelSpeed;
 
+    getPinSpeeds(dir);
+
     if (debugMode) {
       debugPrint("Left wheel speed: ");
       debugPrintln(leftWheelSpeed);
@@ -67,6 +69,7 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
       debugPrintln(rightWheelSpeed);
     }
 
+    getPinSpeeds(dir);
     return;
   }
   
@@ -114,19 +117,29 @@ void getPinSpeeds(Direction dir) {
   int leftOutput = map(abs(leftAnalog), 0.0, 5.0, 0, 255);    
   int rightOutput = map(abs(rightAnalog), 0.0, 5.0, 0, 255);
 
-  DC1Speed = leftDir*leftOutput;
-  DC2Speed = (1.-leftDir)*leftOutput;
-  DC3Speed = (1.-rightDir)*rightOutput;
-  DC4Speed = rightDir*rightOutput;
+  DC2Speed = leftDir*leftOutput;
+  DC1Speed = (1.-leftDir)*leftOutput;
+  DC4Speed = (1.-rightDir)*rightOutput;
+  DC3Speed = rightDir*rightOutput;
+
+  if (debugMode) {
+    Serial.println("Pin speeds:");
+    Serial.println(DC1Speed);
+    Serial.println(DC2Speed);
+    Serial.println(DC3Speed);
+    Serial.println(DC4Speed);
+  }
 }
 
 /*  Brakes the DC Motors controlling the wheels.
  */
 void wheelBrake() {
-  DC1Speed = 255;
-  DC2Speed = 255;
-  DC3Speed = 255;
-  DC4Speed = 255;
+  DC1Speed = 0;
+  DC2Speed = 0;
+  DC3Speed = 0;
+  DC4Speed = 0;
+
+  wheelDrive();
   
   if (debugMode) {
     Serial.println("Braking.");

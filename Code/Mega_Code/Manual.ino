@@ -17,6 +17,7 @@ void manualOperations(float dt) {
             duration = rxInt;
             
             manualState = DRIVING;
+            wheelDrive();
             
             sendTransmission('M', 2);
           } break;
@@ -28,6 +29,7 @@ void manualOperations(float dt) {
             duration = rxInt;
 
             manualState = DRIVING;
+            wheelDrive();
 
             sendTransmission('M', 3);
           } break;
@@ -39,6 +41,7 @@ void manualOperations(float dt) {
             duration = rxInt;
 
             manualState = TURNING;
+            wheelDrive();
 
             sendTransmission('M', 4);
           } break;
@@ -50,40 +53,67 @@ void manualOperations(float dt) {
             duration = rxInt;
 
             manualState = TURNING;
+            wheelDrive();
 
             sendTransmission('M', 5);
           } break;
 
           case 'T':
           case 't': {
-            // Move turret int degrees; <180 for left, >180 for right
-            manualState = PLACING;
+            // moveTo turret int degrees; <180 for left, >180 for right
+            manualState = TURRET;
+
+            int moveDist;
+            
+            if (rxInt <= 90) {
+              moveDist = 100*rxInt/stepSize;
+            }
+            else if (rxInt <= 180) {
+              moveDist = -100*(rxInt - 90)/stepSize;
+            }
+
+            turretMotor.move(moveDist);
 
             sendTransmission('M', 6);
           } break;
 
           case 'A':
           case 'a': {
-            // Move second link int degrees; <180 for left, >180 for right
-            manualState = PLACING;
+            // moveTo second link int degrees; <180 for left, >180 for right
+            manualState = ARM;
+
+            int moveDist;
+            
+            if (rxInt <= 90) {
+              moveDist = 36*rxInt/stepSize;
+            }
+            else if (rxInt <= 180) {
+              moveDist = -36*(rxInt - 90)/stepSize;
+            }
+
+            armMotor.move(moveDist);
 
             sendTransmission('M', 7);
           } break;
 
-          case 'W':
-          case 'w': {
-            // Move wrist link int degrees; <180 for left, >180 for right
-            manualState = PLACING;
-
-            sendTransmission('M', 8);
-          } break;
-
           case 'Z':
           case 'z': {
-            // Move arm to int position; will do nothing if already in position
-            manualState = PLACING;
+            // moveTo arm to int position; will do nothing if already in position
+            manualState = TOWER;
+            
+            int moveDist;
+            
+            if (rxInt <= 90) {
+              moveDist = 1*rxInt/stepSize;
+            }
+            else if (rxInt <= 180) {
+              moveDist = -1*(rxInt - 90)/stepSize;
+            }
+
+            zMotor.move(moveDist);
 
             sendTransmission('M', 9);
+
           } break;
 
           default: break;
@@ -94,8 +124,6 @@ void manualOperations(float dt) {
     } break;
 
     case DRIVING: {
-      wheelDrive();
-
       if (debugMode) {
         debugPrint(timer);
         debugPrint(" ");
@@ -129,8 +157,28 @@ void manualOperations(float dt) {
 
     } break;
 
-    case PLACING: {
+    case ARM: {
+      if (armMotor.distanceToGo() == 0) {
+        manualState = READY;
 
+        sendTransmission('M', 1);
+      } 
+    } break;
+
+    case TURRET: {
+      if (turretMotor.distanceToGo() == 0) {
+        manualState = READY;
+
+        sendTransmission('M', 1);
+      } 
+    } break;
+
+    case TOWER: {
+      if (zMotor.distanceToGo() == 0) {
+        manualState = READY;
+
+        sendTransmission('M', 1);
+      } 
     } break;
   }
 }

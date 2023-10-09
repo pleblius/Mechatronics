@@ -1,16 +1,16 @@
+#include <AccelStepper.h>
+#include <MultiStepper.h>
 
 
 /*********************** PIN DEFINITIONS **********************/
 
 // Stepper Motors
-#define TSTEP 23
-#define TDIR 25
-#define ZSTEP 27
-#define ZDIR 29
-#define ASTEP 31
 #define ADIR 33
-#define WSTEP 35
-#define WDIR 37
+#define ZDIR 31
+#define TDIR 29
+#define ASTEP 27
+#define ZSTEP 25
+#define TSTEP 23
 
 // DC Motors
 #define IN1 9
@@ -60,7 +60,10 @@ enum RobotState {
   PROBING,
   ACQUIRING, GRABBING,
   PLACING,
-  RESTART
+  RESTART,
+  ARM,
+  TURRET,
+  TOWER
 };
 enum RobotState state;
 enum RobotState manualState;
@@ -102,6 +105,20 @@ int DC2Speed;
 int DC3Speed;
 int DC4Speed;
 
+// Steppers
+
+float pi = 3.1416;
+
+//Motor Block
+float stepSize = 1.8;                       
+float stepSizeRad = stepSize*pi/180.;       
+float stepsPerRev = 360./stepSize;           
+
+// Stepper constructurs - Motor mode (Driver = 2-pin), Step-pin, Dir-pin
+AccelStepper armMotor = AccelStepper(AccelStepper::DRIVER, ASTEP, ADIR);
+AccelStepper turretMotor = AccelStepper(AccelStepper::DRIVER, TSTEP, TDIR);  
+AccelStepper zMotor = AccelStepper(AccelStepper::DRIVER, ZSTEP, ZDIR);
+
 // Robot Dimensions
 
 float wheelBase = 12.0;
@@ -120,6 +137,7 @@ void setup() {
   serialSetup();
 
   // Set up stepper motors
+  stepperSetup();
 
   // Set up servo motors
 
@@ -131,6 +149,12 @@ void setup() {
   // Set up electromagnet
 
   // Set up color detector
+
+  // DEBUG
+  pinMode(13, OUTPUT);
+  turretMotor.setMaxSpeed(1000);
+  turretMotor.setSpeed(50);
+  turretMotor.move(10000);
 }
 
 void loop() {
@@ -148,6 +172,10 @@ void loop() {
 
     case MANUAL: {
       manualOperations(dt);
+
+      turretMotor.run();
+      zMotor.run();
+      armMotor.run();
     } break;
 
     case SETUP: {

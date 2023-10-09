@@ -17,28 +17,19 @@ void checkManualControl() {
   if (receiveTransmission()) {
     Serial.println(rxChar);
     Serial.println(rxInt);
-  
-    switch (rxChar) {
-      case 'y':
-      case 'Y': {
-        state = MANUAL;
-        manualState = READY;
 
-        sendTransmission('M', 1);
+    if (rxChar == 'y' || rxChar == 'Y') {
+      state = MANUAL;
+      manualState = READY;
 
-      } break;
-      
-      case 'n':
-      case 'N': {
-        sendTransmission('B', 0);
-        
-      } break;
-
-      default: {
-        sendTransmission('X', 0);
-        delay(100);
-        sendTransmission('M', 0);
-      }
+      sendTransmission('M', 1);
+    } else if (rxChar == 'n' || rxChar == 'N') {
+      sendTransmission('B', 0);
+    }
+    else {
+      sendTransmission('X', 0);
+      delay(100);
+      sendTransmission('M', 0);
     }
   }
 }

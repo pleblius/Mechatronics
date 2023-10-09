@@ -1,7 +1,7 @@
 #include <SoftwareSerial.h>
 
-#define rxPin 10
-#define txPin 11
+#define rxPin 2
+#define txPin 3
 
 SoftwareSerial mySerial(rxPin, txPin);
 
@@ -78,6 +78,8 @@ bool getUserInput() {
       gotChar = true;
     }
     else {
+      delay(500);
+
       while (Serial.available() > 0) {
         txInt = Serial.read() - 48 + 10*txInt;
       }
