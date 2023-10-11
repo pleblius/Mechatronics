@@ -152,9 +152,6 @@ void setup() {
 
   // DEBUG
   pinMode(13, OUTPUT);
-  turretMotor.setMaxSpeed(1000);
-  turretMotor.setSpeed(50);
-  turretMotor.move(10000);
 }
 
 void loop() {

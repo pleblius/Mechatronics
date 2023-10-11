@@ -66,10 +66,10 @@ void manualOperations(float dt) {
             int moveDist;
             
             if (rxInt <= 90) {
-              moveDist = 100*rxInt/stepSize;
+              moveDist = 95*rxInt/stepSize;
             }
             else if (rxInt <= 180) {
-              moveDist = -100*(rxInt - 90)/stepSize;
+              moveDist = -95*(rxInt - 90)/stepSize;
             }
 
             turretMotor.move(moveDist);
@@ -85,10 +85,10 @@ void manualOperations(float dt) {
             int moveDist;
             
             if (rxInt <= 90) {
-              moveDist = 36*rxInt/stepSize;
+              moveDist = 50*rxInt/stepSize;
             }
             else if (rxInt <= 180) {
-              moveDist = -36*(rxInt - 90)/stepSize;
+              moveDist = -50*(rxInt - 90)/stepSize;
             }
 
             armMotor.move(moveDist);
@@ -104,10 +104,10 @@ void manualOperations(float dt) {
             int moveDist;
             
             if (rxInt <= 90) {
-              moveDist = 1*rxInt/stepSize;
+              moveDist = 80*rxInt/stepSize;
             }
             else if (rxInt <= 180) {
-              moveDist = -1*(rxInt - 90)/stepSize;
+              moveDist = -80*(rxInt - 90)/stepSize;
             }
 
             zMotor.move(moveDist);
@@ -116,7 +116,9 @@ void manualOperations(float dt) {
 
           } break;
 
-          default: break;
+          default: {
+            sendTransmission('M', 0);
+          } break;
         }
 
         timer = 0.0;
