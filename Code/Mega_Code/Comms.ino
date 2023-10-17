@@ -20,9 +20,9 @@ void checkManualControl() {
 
     if (rxChar == 'y' || rxChar == 'Y') {
       state = MANUAL;
-      manualState = READY;
+      manualState = WAITING;
 
-      sendTransmission('M', 1);
+      sendTransmission('M', 100);
     } else if (rxChar == 'n' || rxChar == 'N') {
       sendTransmission('B', 0);
     }
