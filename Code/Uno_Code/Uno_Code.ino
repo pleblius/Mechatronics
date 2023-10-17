@@ -154,8 +154,10 @@ void parseTransmission() {
           state = GETTING;
         } break;
 
-        case 1: {
+        case 100: {
+          Serial.println("");
           Serial.println("Manual mode entered. The following commands are available:");
+          Serial.println("Line-following until [int] distance: d/D [int]");
           Serial.println("Drive forward [int] seconds: f/F [int]");
           Serial.println("Reverse [int] seconds: b/B [int]");
           Serial.println("Turn left [int] seconds: l/L [int]");
@@ -164,46 +166,60 @@ void parseTransmission() {
           Serial.println("Move arm [int] degrees: a/A [int] left: [0 90] right: [91 180]");
           Serial.println("Move wrist [int] degrees: w/W [int] left: [0 90] right: [91 180]");
           Serial.println("Move arm to vertical position [int]: z/Z [int] [0 1]");
+          Serial.println("");
 
           state = GETTING;
         } break;
 
+        case 1: {
+          Serial.println("");
+          Serial.println("New Command:");
+        } break;
+
         case 2: {
+          Serial.println("");
           Serial.println("Driving forward.");
 
         } break;
 
         case 3: {
+          Serial.println("");
           Serial.println("Driving in reverse.");
 
         } break;
 
         case 4: {
+          Serial.println("");
           Serial.println("Turning left.");
 
         } break;
 
         case 5: {
+          Serial.println("");
           Serial.println("Turning right.");
 
         } break;
 
         case 6: {
+          Serial.println("");
           Serial.println("Moving turret.");
 
         } break;
 
         case 7: {
+          Serial.println("");
           Serial.println("Moving arm.");
 
         } break;
 
         case 8: {
+          Serial.println("");
           Serial.println("Moving wrist.");
 
         } break;
 
         case 9: {
+          Serial.println("");
           Serial.println("Moving vertically");
 
         } break;

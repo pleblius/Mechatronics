@@ -1,3 +1,4 @@
+#include <QTRSensors.h>
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 
@@ -11,36 +12,6 @@
 #define ASTEP 27
 #define ZSTEP 25
 #define TSTEP 23
-
-// DC Motors
-#define IN1 9
-#define IN2 10
-#define IN3 11
-#define IN4 12
-
-#define CENA 45
-#define CIN1 47
-#define CIN2 49
-
-// Line Sensor Array
-#define LS1 22
-#define LS2 24
-#define LS3 26
-#define LS4 28
-#define LS5 30
-#define LS6 32
-#define LS7 34
-#define LS8 36
-#define LS9 38
-#define LS10 40
-#define LS11 42
-#define LS12 44
-#define LS13 46
-#define LSIn 48
-
-// Color Sensor
-#define rgbSCL A4
-#define rbgSDA A5
 
 /************************ SETUP AND GLOBALS ********************/
 
@@ -60,20 +31,27 @@ enum RobotState {
   PROBING,
   ACQUIRING, GRABBING,
   PLACING,
-  RESTART,
+  RESTART
+};
+enum RobotState state;
+
+enum ManualState {
+  WAITING,
+  MOVING,
+  ROTATING,
+  FOLLOWING,
   ARM,
   TURRET,
   TOWER
 };
-enum RobotState state;
-enum RobotState manualState;
+enum ManualState manualState;
 
 // Struct that holds priority queues for different block types. Queue is an array that will
 // pop from left to right until all values have been visited and index == size.
 struct PriorityQueue {
   int index;
   int size;
-  int queue[];
+  int queue[20];
 };
 struct PriorityQueue wheelQueue;
 struct PriorityQueue batteryQueue;
@@ -145,6 +123,10 @@ void setup() {
   motorSetup();
 
   // Set up line sensor array
+  arraySetup();
+  
+  // Set up distance sensors
+  distanceSetup();
 
   // Set up electromagnet
 

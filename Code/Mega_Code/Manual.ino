@@ -4,19 +4,33 @@
 void manualOperations(float dt) {
   static float timer;
   static int duration;
+  static int desiredDistance;
 
   switch (manualState) {
-    case READY: {
+    case WAITING: {
       
       if (receiveTransmission()) {
         switch (rxChar) {
+          case 'D':
+          case 'd': {
+            getWheelSpeeds(FORWARD, 0.1, 0.0);
+
+            manualState = FOLLOWING;
+            desiredDistance = rxInt;
+
+            wheelDrive();
+
+            sendTransmission('M', 10);
+
+          } break;
+
           case 'F':
           case 'f': {
             // Drive forward for int seconds
             getWheelSpeeds(FORWARD, 0.25, 0.0);
             duration = rxInt;
             
-            manualState = DRIVING;
+            manualState = MOVING;
             wheelDrive();
             
             sendTransmission('M', 2);
@@ -28,7 +42,7 @@ void manualOperations(float dt) {
             getWheelSpeeds(REVERSE, 0.25, 0.0);
             duration = rxInt;
 
-            manualState = DRIVING;
+            manualState = MOVING;
             wheelDrive();
 
             sendTransmission('M', 3);
@@ -40,7 +54,7 @@ void manualOperations(float dt) {
             getWheelSpeeds(LEFT, 0, 0);
             duration = rxInt;
 
-            manualState = TURNING;
+            manualState = ROTATING;
             wheelDrive();
 
             sendTransmission('M', 4);
@@ -52,7 +66,7 @@ void manualOperations(float dt) {
             getWheelSpeeds(RIGHT, 0, 0);
             duration = rxInt;
 
-            manualState = TURNING;
+            manualState = ROTATING;
             wheelDrive();
 
             sendTransmission('M', 5);
@@ -125,7 +139,35 @@ void manualOperations(float dt) {
       }
     } break;
 
-    case DRIVING: {
+    case FOLLOWING: {
+      float distance = getFrontDistance();
+
+      static long debugTimer = millis() - 1001;
+      if (debugMode && millis() - debugTimer > 1000) {
+        debugPrintln("Speeds:");
+        debugPrint(leftWheelSpeed);
+        debugPrint(" ");
+        debugPrint(rightWheelSpeed);
+        debugPrintln("Distance:");
+        debugPrintln(distance);
+        debugPrintln("");
+
+        debugTimer = millis();
+      }
+
+      if (distance < desiredDistance) {
+        wheelBrake();
+
+        manualState = WAITING;
+
+        sendTransmission('M', 1);
+      }
+
+      lineFollow(0.1);
+
+    } break;
+
+    case MOVING: {
       if (debugMode) {
         debugPrint(timer);
         debugPrint(" ");
@@ -137,14 +179,14 @@ void manualOperations(float dt) {
       if (timer > duration) {
         wheelBrake();
 
-        manualState = READY;
+        manualState = WAITING;
         
         sendTransmission('M', 1);
       }
 
     } break;
 
-    case TURNING: {
+    case ROTATING: {
       wheelDrive();
 
       timer += dt;
@@ -152,7 +194,7 @@ void manualOperations(float dt) {
       if (timer > duration) {
         wheelBrake();
 
-        manualState = READY;
+        manualState = WAITING;
 
         sendTransmission('M', 1);
       }
@@ -161,7 +203,7 @@ void manualOperations(float dt) {
 
     case ARM: {
       if (armMotor.distanceToGo() == 0) {
-        manualState = READY;
+        manualState = WAITING;
 
         sendTransmission('M', 1);
       } 
@@ -169,7 +211,7 @@ void manualOperations(float dt) {
 
     case TURRET: {
       if (turretMotor.distanceToGo() == 0) {
-        manualState = READY;
+        manualState = WAITING;
 
         sendTransmission('M', 1);
       } 
@@ -177,7 +219,7 @@ void manualOperations(float dt) {
 
     case TOWER: {
       if (zMotor.distanceToGo() == 0) {
-        manualState = READY;
+        manualState = WAITING;
 
         sendTransmission('M', 1);
       } 

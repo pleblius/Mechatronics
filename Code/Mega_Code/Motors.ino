@@ -1,3 +1,13 @@
+// PINS
+#define IN1 9
+#define IN2 10
+#define IN3 11
+#define IN4 12
+
+#define CENA 45
+#define CIN1 47
+#define CIN2 49
+
 /*  Sets up the DC motors that drive the wheels. Assigns the motors to the correct pins and prepares them for
  *  operation.
  */
@@ -134,10 +144,10 @@ void getPinSpeeds(Direction dir) {
 /*  Brakes the DC Motors controlling the wheels.
  */
 void wheelBrake() {
-  DC1Speed = 0;
-  DC2Speed = 0;
-  DC3Speed = 0;
-  DC4Speed = 0;
+  DC1Speed = 255;
+  DC2Speed = 255;
+  DC3Speed = 255;
+  DC4Speed = 255;
 
   wheelDrive();
   
