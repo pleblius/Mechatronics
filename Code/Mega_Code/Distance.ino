@@ -1,23 +1,18 @@
 // Input pin
-#define DSIN A0
+#define DSIN A15
 
 // Calibration constants
-float a;
-float b;
+float a = 3.7622;
+float b = -0.8031;
 
 // Cache inverses for efficiency
-float a_inv;
-float b_inv;
+float a_inv = 1/a;
+float b_inv = 1/b;
 
 /* Sets up any distance sensor pins and initializes calibration values
  */
 void distanceSetup() {
   pinMode(DSIN, INPUT);
-
-  a = 1.0;
-  b = 1.0;
-  a_inv = 1.0/a;
-  b_inv = 1.0/b;
 }
 
 /* Gets the current distance reading for the front-facing IR sensor
@@ -32,7 +27,7 @@ float getFrontDistance() {
   reading = analogRead(DSIN);
 
   // Map reading to voltage, 0V to 5V, and filter
-  voltage = .001*map(reading, 0, 255, 0, 5000);
+  voltage = .001*map(reading, 0, 1023, 0, 5000);
   voltage = filterOutput(voltage, prevVoltage);
   
   // Cache voltage

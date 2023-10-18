@@ -106,6 +106,8 @@ float wheelBase = 12.0;
 char rxChar;
 int rxInt;
 
+unsigned long timer = 0;
+bool goodToPrint = true;
 
 void setup() {
   state = STARTUP;
@@ -143,6 +145,13 @@ void loop() {
   
   dt = (millis() - lastUpdate)/1000.;
   lastUpdate = millis();
+
+  if (millis() - timer > 2000) {
+    goodToPrint = true;
+    timer = millis();
+  } else {
+    goodToPrint = false;
+  }
 
   switch (state) {
     case STARTUP: {

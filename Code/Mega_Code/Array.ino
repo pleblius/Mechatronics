@@ -1,17 +1,17 @@
 // PINS
-#define LS1 22
-#define LS2 24
-#define LS3 26
-#define LS4 28
+#define LS1 34
+#define LS2 46
+#define LS3 32
+#define LS4 44
 #define LS5 30
-#define LS6 32
-#define LS7 34
-#define LS8 36
-#define LS9 38
-#define LS10 40
-#define LS11 42
-#define LS12 44
-#define LS13 46
+#define LS6 42
+#define LS7 28
+#define LS8 40
+#define LS9 26
+#define LS10 38
+#define LS11 24
+#define LS12 36
+#define LS13 22
 #define LSIN 48
 
 // Sensors
@@ -20,7 +20,8 @@ QTRSensors qtr;
 uint16_t sensorValues[SENSORCOUNT];
 
 // Calibration Data
-uint16_t baseValues[SENSORCOUNT];
+uint16_t baseValues[SENSORCOUNT]{316, 228, 228, 228, 228, 228, 228, 228, 228, 228, 228, 228, 228};
+uint16_t maxValues[SENSORCOUNT]{1632, 1228, 1384, 1460, 1220, 1452, 1628, 1628, 1712, 1544, 1624, 1456, 1456};
 
 // Proportionality Constant
 float kP;
@@ -33,7 +34,7 @@ void arraySetup() {
   qtr.setSensorPins((const uint8_t[]){LS1, LS2, LS3, LS4, LS5, LS6, LS7, LS8, LS9, LS10, LS11, LS12, LS13}, SENSORCOUNT);
   qtr.setEmitterPin(LSIN);
 
-  kP = 0.025;
+  kP = 0.05;
 }
 
 /*  Sets the forward wheel speed based on the provided desired speed and the
@@ -45,8 +46,17 @@ void lineFollow(float avgSpd) {
 
   // Adjust wheel speeds based on error-term
   float error = getLineError();
-  leftWheelSpeed -= kP*error;
-  rightWheelSpeed += kP*error;
+  leftWheelSpeed += kP*error;
+  rightWheelSpeed -= kP*error;
+
+  if (debugMode) {
+    debugPrintln("Adjusted Wheel Speeds:");
+    debugPrint(leftWheelSpeed);
+    debugPrint(" ");
+    debugPrint(rightWheelSpeed);
+    debugPrintln(" ");
+  }
+  wheelDrive();
 }
 
 /*  Gets the line location error against its nominal position (centered).
@@ -57,18 +67,35 @@ float getLineError() {
 
   qtr.read(sensorValues);
 
-  // Adjust each reading by calibration value
+  if (debugMode) {
+    debugPrintln("Sensor Values:");
+  }
+  // Map the sensor reading to their calibrated range
   for (int i = 0; i < SENSORCOUNT; i++) {
-    sensorValues[i] -= baseValues[i];
+    if (sensorValues[i] < baseValues[i]) {
+      sensorValues[i] = baseValues[i];
+    } else if (sensorValues[i] > maxValues[i]) {
+      sensorValues[i] = maxValues[i];
+    }
+
+    sensorValues[i] = map(sensorValues[i], baseValues[i], maxValues[i], 0, 2550);
+
+    if (debugMode) {
+      int val = sensorValues[i];
+      debugPrint(val);
+      debugPrint(" ");
+    }
   }
 
   // Calculate which sensor the line is centered beneath
   long readingSum = 0;
   long weightedSum = 0;
+
   for (int i = 0; i < SENSORCOUNT; i++) {
     readingSum += sensorValues[i];
-    weightedSum += sensorValues[i]*long(i);
+    weightedSum += sensorValues[i]*long(i+1);
   }
+
   float location = (float)weightedSum / (float)readingSum;
 
   if (debugMode) {
@@ -77,5 +104,6 @@ float getLineError() {
     debugPrintln("");
   }
 
+  // return difference from nominal
   return d0 - location;
 }
