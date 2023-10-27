@@ -76,40 +76,52 @@ void sendTransmission(char txChar, int txInt) {
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(char* str) {
-  Serial.println(str);
+  if (goodToPrint) {
+    Serial.println(str);
+  }
 }
 
 /*  Sends the given string to the serial comms devicce, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(char* str) {
-  Serial.print(str);
+  if (goodToPrint) {
+    Serial.print(str);
+  }
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(float f) {
-  Serial.println(f);
+  if (goodToPrint) {  
+    Serial.println(f);
+  }
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(float f) {
-  Serial.print(f);
+  if (goodToPrint) {  
+    Serial.print(f);
+  }
 }
 
 /*  Sends the given int to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(int f) {
-  Serial.println(f);
+  if (goodToPrint) {
+    Serial.println(f);
+  }
 }
 
 /*  Sends the given int to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(int f) {
-  Serial.print(f);
+  if (goodToPrint) {
+    Serial.print(f);
+  }
 }

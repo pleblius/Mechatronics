@@ -174,6 +174,8 @@ void parseTransmission() {
         case 1: {
           Serial.println("");
           Serial.println("New Command:");
+
+          state = GETTING;
         } break;
 
         case 2: {
@@ -223,6 +225,11 @@ void parseTransmission() {
           Serial.println("Moving vertically");
 
         } break;
+
+        case 10: {
+          Serial.println("");
+          Serial.println("Line Following.");
+        }
       }
     } break;
 

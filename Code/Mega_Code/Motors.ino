@@ -8,6 +8,17 @@
 #define CIN1 47
 #define CIN2 49
 
+// Motor variables
+
+float maxMotorSpeed;
+float leftWheelSpeed;
+float rightWheelSpeed;
+
+int DC1Speed;
+int DC2Speed;
+int DC3Speed;
+int DC4Speed;
+
 /*  Sets up the DC motors that drive the wheels. Assigns the motors to the correct pins and prepares them for
  *  operation.
  */
@@ -29,6 +40,8 @@ void motorSetup() {
  *  Speeds should be given as a decimal fraction of max speed.
  */
 void wheelDrive() {
+  getPinSpeeds();
+
   analogWrite(IN1, DC1Speed);
   analogWrite(IN2, DC2Speed);
   analogWrite(IN3, DC3Speed);
@@ -50,8 +63,6 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
   if (dir == FORWARD || dir == REVERSE) {
     leftWheelSpeed = dir*avgFwdSpeed;
     rightWheelSpeed = leftWheelSpeed;
-
-    getPinSpeeds(dir);
 
     if (debugMode) {
       debugPrint("Left wheel speed: ");
@@ -79,7 +90,6 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
       debugPrintln(rightWheelSpeed);
     }
 
-    getPinSpeeds(dir);
     return;
   }
   
@@ -106,14 +116,12 @@ void getWheelSpeeds(Direction dir, float avgFwdSpeed, float radius) {
     debugPrint("Right wheel speed: ");
     debugPrintln(rightWheelSpeed);
   }
-
-  getPinSpeeds(dir);
 }
 
 /*  Converts the desired wheel speeds into analog pin speeds.
  *  Caches values in global variables for faster computation and smaller loop deltas.
  */
-void getPinSpeeds(Direction dir) {
+void getPinSpeeds() {
   float leftDir = 1.;
   float rightDir = 1.;
 
@@ -124,8 +132,8 @@ void getPinSpeeds(Direction dir) {
   float leftAnalog = leftWheelSpeed*5.0;                        
   float rightAnalog = rightWheelSpeed*5.0;                      
 
-  int leftOutput = map(abs(leftAnalog), 0.0, 5.0, 0, 255);    
-  int rightOutput = map(abs(rightAnalog), 0.0, 5.0, 0, 255);
+  int leftOutput = (int)(leftAnalog*255.0/5.0);
+  int rightOutput = (int)(rightAnalog*255.0/5.0);
 
   DC2Speed = leftDir*leftOutput;
   DC1Speed = (1.-leftDir)*leftOutput;
@@ -133,11 +141,11 @@ void getPinSpeeds(Direction dir) {
   DC3Speed = rightDir*rightOutput;
 
   if (debugMode) {
-    Serial.println("Pin speeds:");
-    Serial.println(DC1Speed);
-    Serial.println(DC2Speed);
-    Serial.println(DC3Speed);
-    Serial.println(DC4Speed);
+    debugPrintln("Pin speeds:");
+    debugPrintln(DC1Speed);
+    debugPrintln(DC2Speed);
+    debugPrintln(DC3Speed);
+    debugPrintln(DC4Speed);
   }
 }
 
@@ -149,8 +157,11 @@ void wheelBrake() {
   DC3Speed = 255;
   DC4Speed = 255;
 
-  wheelDrive();
-  
+  analogWrite(IN1, DC1Speed);
+  analogWrite(IN2, DC2Speed);
+  analogWrite(IN3, DC3Speed);
+  analogWrite(IN4, DC4Speed);
+
   if (debugMode) {
     Serial.println("Braking.");
   }

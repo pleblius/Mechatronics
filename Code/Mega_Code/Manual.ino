@@ -13,12 +13,10 @@ void manualOperations(float dt) {
         switch (rxChar) {
           case 'D':
           case 'd': {
-            getWheelSpeeds(FORWARD, 0.1, 0.0);
+            getWheelSpeeds(FORWARD, 0.25, 0.0);
 
             manualState = FOLLOWING;
             desiredDistance = rxInt;
-
-            wheelDrive();
 
             sendTransmission('M', 10);
 
@@ -142,7 +140,7 @@ void manualOperations(float dt) {
     case FOLLOWING: {
       float distance = getFrontDistance();
 
-      static long debugTimer = millis() - 1001;
+      static long debugTimer = 0;
       if (debugMode && millis() - debugTimer > 1000) {
         debugPrintln("Speeds:");
         debugPrint(leftWheelSpeed);
@@ -160,10 +158,12 @@ void manualOperations(float dt) {
 
         manualState = WAITING;
 
-        sendTransmission('M', 1);
+        sendTransmission('M', 2);
+
+        return;
       }
 
-      lineFollow(0.1);
+      lineFollow(0.2);
 
     } break;
 

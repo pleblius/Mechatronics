@@ -72,17 +72,6 @@ enum Direction : int {
   LEFT = -2,
 };
 
-// Motor variables
-
-float maxMotorSpeed;
-float leftWheelSpeed;
-float rightWheelSpeed;
-
-int DC1Speed;
-int DC2Speed;
-int DC3Speed;
-int DC4Speed;
-
 // Steppers
 
 float pi = 3.1416;
@@ -106,6 +95,8 @@ float wheelBase = 12.0;
 char rxChar;
 int rxInt;
 
+unsigned long timer = 0;
+bool goodToPrint = true;
 
 void setup() {
   state = STARTUP;
@@ -144,6 +135,13 @@ void loop() {
   dt = (millis() - lastUpdate)/1000.;
   lastUpdate = millis();
 
+  if (millis() - timer > 2000) {
+    goodToPrint = true;
+    timer = millis();
+  } else {
+    goodToPrint = false;
+  }
+
   switch (state) {
     case STARTUP: {
       checkManualControl();
@@ -155,6 +153,8 @@ void loop() {
       turretMotor.run();
       zMotor.run();
       armMotor.run();
+      wheelDrive();
+      
     } break;
 
     case SETUP: {
