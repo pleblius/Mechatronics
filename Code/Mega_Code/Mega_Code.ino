@@ -72,17 +72,6 @@ enum Direction : int {
   LEFT = -2,
 };
 
-// Motor variables
-
-float maxMotorSpeed;
-float leftWheelSpeed;
-float rightWheelSpeed;
-
-int DC1Speed;
-int DC2Speed;
-int DC3Speed;
-int DC4Speed;
-
 // Steppers
 
 float pi = 3.1416;
@@ -164,6 +153,8 @@ void loop() {
       turretMotor.run();
       zMotor.run();
       armMotor.run();
+      wheelDrive();
+      
     } break;
 
     case SETUP: {

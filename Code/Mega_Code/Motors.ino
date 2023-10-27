@@ -8,6 +8,17 @@
 #define CIN1 47
 #define CIN2 49
 
+// Motor variables
+
+float maxMotorSpeed;
+float leftWheelSpeed;
+float rightWheelSpeed;
+
+int DC1Speed;
+int DC2Speed;
+int DC3Speed;
+int DC4Speed;
+
 /*  Sets up the DC motors that drive the wheels. Assigns the motors to the correct pins and prepares them for
  *  operation.
  */
