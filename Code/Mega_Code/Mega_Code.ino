@@ -1,17 +1,7 @@
+#include <Encoder.h>
 #include <QTRSensors.h>
 #include <AccelStepper.h>
 #include <MultiStepper.h>
-
-
-/*********************** PIN DEFINITIONS **********************/
-
-// Stepper Motors
-#define ADIR 33
-#define ZDIR 31
-#define TDIR 29
-#define ASTEP 27
-#define ZSTEP 25
-#define TSTEP 23
 
 /************************ SETUP AND GLOBALS ********************/
 
@@ -20,6 +10,8 @@
 #define OFF false
 #define ON true
 bool debugMode;
+
+float pi = 3.1416;
 
 // Holds the robot state. Use MANUAL to manually input commands for testing.
 // All other states are for automatic control/competition.
@@ -34,17 +26,6 @@ enum RobotState {
   RESTART
 };
 enum RobotState state;
-
-enum ManualState {
-  WAITING,
-  MOVING,
-  ROTATING,
-  FOLLOWING,
-  ARM,
-  TURRET,
-  TOWER
-};
-enum ManualState manualState;
 
 // Struct that holds priority queues for different block types. Queue is an array that will
 // pop from left to right until all values have been visited and index == size.
@@ -64,34 +45,7 @@ enum Block : char {
   FAN = 'f'
 };
 
-// Motor Directions
-enum Direction : int {
-  FORWARD = 1,
-  REVERSE = -1,
-  RIGHT = 2,
-  LEFT = -2,
-};
-
-// Steppers
-
-float pi = 3.1416;
-
-//Motor Block
-float stepSize = 1.8;                       
-float stepSizeRad = stepSize*pi/180.;       
-float stepsPerRev = 360./stepSize;           
-
-// Stepper constructurs - Motor mode (Driver = 2-pin), Step-pin, Dir-pin
-AccelStepper armMotor = AccelStepper(AccelStepper::DRIVER, ASTEP, ADIR);
-AccelStepper turretMotor = AccelStepper(AccelStepper::DRIVER, TSTEP, TDIR);  
-AccelStepper zMotor = AccelStepper(AccelStepper::DRIVER, ZSTEP, ZDIR);
-
-// Robot Dimensions
-
-float wheelBase = 12.0;
-
 // Transmission variables
-
 char rxChar;
 int rxInt;
 
@@ -122,43 +76,19 @@ void setup() {
   // Set up electromagnet
 
   // Set up color detector
-
-  // DEBUG
-  pinMode(13, OUTPUT);
 }
 
 void loop() {
-  // Time control variables - ms
-  static unsigned long lastUpdate;
-  float dt;
-  
-  dt = (millis() - lastUpdate)/1000.;
-  lastUpdate = millis();
-
-  if (millis() - timer > 2000) {
-    goodToPrint = true;
-    timer = millis();
-  } else {
-    goodToPrint = false;
-  }
-
   switch (state) {
     case STARTUP: {
       checkManualControl();
     } break;
 
     case MANUAL: {
-      manualOperations(dt);
-
-      turretMotor.run();
-      zMotor.run();
-      armMotor.run();
-      wheelDrive();
-      
+      manualOperations();
     } break;
 
     case SETUP: {
-
 
     } break;
     

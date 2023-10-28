@@ -157,14 +157,11 @@ void parseTransmission() {
         case 100: {
           Serial.println("");
           Serial.println("Manual mode entered. The following commands are available:");
-          Serial.println("Line-following until [int] distance: d/D [int]");
-          Serial.println("Drive forward [int] seconds: f/F [int]");
-          Serial.println("Reverse [int] seconds: b/B [int]");
-          Serial.println("Turn left [int] seconds: l/L [int]");
-          Serial.println("Turn right [int] seconds: r/R [int]");
+          Serial.println("Line-following until [int] distance: l/L [int]");
+          Serial.println("Drive via dead-reckoning: d/D [dist]");
+          Serial.println("Rotate in place [int] degrees: r/R [angle]");
           Serial.println("Move turret [int] degrees: t/T [int] left: [0 90] right: [91 180]");
           Serial.println("Move arm [int] degrees: a/A [int] left: [0 90] right: [91 180]");
-          Serial.println("Move wrist [int] degrees: w/W [int] left: [0 90] right: [91 180]");
           Serial.println("Move arm to vertical position [int]: z/Z [int] [0 1]");
           Serial.println("");
 
@@ -180,53 +177,47 @@ void parseTransmission() {
 
         case 2: {
           Serial.println("");
-          Serial.println("Driving forward.");
+          Serial.println("Driving. Input direction [f/F/r/R] and speed (cm/s) [int].");
 
         } break;
 
         case 3: {
           Serial.println("");
-          Serial.println("Driving in reverse.");
+          Serial.println("Rotating. Input direction [r/R/l/L] and speed (deg/s) [int]");
 
         } break;
 
         case 4: {
           Serial.println("");
-          Serial.println("Turning left.");
+          Serial.println("Turning. Input direction [r/R/l/L] and speed (cm/s) [int]");
 
         } break;
 
         case 5: {
           Serial.println("");
-          Serial.println("Turning right.");
+          Serial.println("Moving turret.");
 
         } break;
 
         case 6: {
           Serial.println("");
-          Serial.println("Moving turret.");
+          Serial.println("Moving arm.");
 
         } break;
 
         case 7: {
           Serial.println("");
-          Serial.println("Moving arm.");
+          Serial.println("Moving wrist.");
 
         } break;
 
         case 8: {
           Serial.println("");
-          Serial.println("Moving wrist.");
-
-        } break;
-
-        case 9: {
-          Serial.println("");
           Serial.println("Moving vertically");
 
         } break;
 
-        case 10: {
+        case 9: {
           Serial.println("");
           Serial.println("Line Following.");
         }

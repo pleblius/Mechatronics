@@ -24,7 +24,7 @@ uint16_t baseValues[SENSORCOUNT]{316, 228, 228, 228, 228, 228, 228, 228, 228, 22
 uint16_t maxValues[SENSORCOUNT]{1632, 1228, 1384, 1460, 1220, 1452, 1628, 1628, 1712, 1544, 1624, 1456, 1456};
 
 // Proportionality Constant
-float kP;
+float LFKp;
 
 /*  Sets up the line-following array, intializing the sensor to the proper pins and
  *  adjusting the calibration values.
@@ -34,20 +34,20 @@ void arraySetup() {
   qtr.setSensorPins((const uint8_t[]){LS1, LS2, LS3, LS4, LS5, LS6, LS7, LS8, LS9, LS10, LS11, LS12, LS13}, SENSORCOUNT);
   qtr.setEmitterPin(LSIN);
 
-  kP = 0.05;
+  LFKp = 0.05;
 }
 
 /*  Sets the forward wheel speed based on the provided desired speed and the
  *  line-following error with the proportionality constant defined above.
  */
 void lineFollow(float avgSpd) {
-  // Get default wheel speeds
-  getWheelSpeeds(FORWARD, avgSpd, 0.0);
+  float leftWheelSpeed = avgSpd;
+  float rightWheelSpeed = avgSpd;
 
   // Adjust wheel speeds based on error-term
   float error = getLineError();
-  leftWheelSpeed += kP*error;
-  rightWheelSpeed -= kP*error;
+  leftWheelSpeed += LFKp*error;
+  rightWheelSpeed -= LFKp*error;
 
   if (debugMode) {
     debugPrintln("Adjusted Wheel Speeds:");
@@ -56,7 +56,8 @@ void lineFollow(float avgSpd) {
     debugPrint(rightWheelSpeed);
     debugPrintln(" ");
   }
-  wheelDrive();
+
+  wheelDriveSpeed(leftWheelSpeed, rightWheelSpeed);
 }
 
 /*  Gets the line location error against its nominal position (centered).

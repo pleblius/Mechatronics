@@ -1,73 +1,111 @@
+enum ManualState {
+  WAITING,
+  MOVING,
+  ROTATING,
+  ARCING,
+  FOLLOWING,
+  ARM,
+  TURRET,
+  TOWER
+};
+enum ManualState manualState = WAITING;
+
+float desiredDistance;
+
 /*  Controls robot behavior while in the manual control operational state.
  *  Can only perform one operation at a time.
  */
-void manualOperations(float dt) {
-  static float timer;
-  static int duration;
-  static int desiredDistance;
+void manualOperations() {
+  static unsigned long lastUpdate = 0;
+  float dt = float(millis() - lastUpdate)/1000.0;
+  lastUpdate = millis();
 
   switch (manualState) {
     case WAITING: {
       
       if (receiveTransmission()) {
         switch (rxChar) {
+          // Drive straight
           case 'D':
           case 'd': {
-            getWheelSpeeds(FORWARD, 0.25, 0.0);
-
-            manualState = FOLLOWING;
+            // Store distance to drive
             desiredDistance = rxInt;
 
-            sendTransmission('M', 10);
+            while (!receiveTransmission()) {
+              delay(1000);
+            }
 
-          } break;
+            switch (rxChar) {
+              case 'F':
+              case 'f': {
+                driveStraight(desiredDistance, rxInt);
+              } break;
+              case 'R':
+              case 'r': {
+                driveStraight(-desiredDistance, rxInt);
+              } break;
+            }
 
-          case 'F':
-          case 'f': {
-            // Drive forward for int seconds
-            getWheelSpeeds(FORWARD, 0.25, 0.0);
-            duration = rxInt;
-            
             manualState = MOVING;
-            wheelDrive();
-            
             sendTransmission('M', 2);
           } break;
+          
+          // Rotate in place
+          case 'R':
+          case 'r': {
+            // Store turn angle
+            desiredDistance = rxInt;
 
-          case 'B':
-          case 'b': {
-            // Drive in reverse - int seconds
-            getWheelSpeeds(REVERSE, 0.25, 0.0);
-            duration = rxInt;
+            while (!receiveTransmission()) {
+              delay(1000);
+            }
 
-            manualState = MOVING;
-            wheelDrive();
+            switch (rxChar) {
+              case 'R':
+              case 'r': {
+                rotate(desiredDistance, rxInt);
+              } break;
+              case 'L':
+              case 'l': {
+                rotate(-desiredDistance, rxInt);
+              } break;
+            }
 
+            manualState = ROTATING;
             sendTransmission('M', 3);
+          } break;
+
+          // Turn in a circular arc
+          case 'C':
+          case 'c': {
+            // Store turn radius (cm)
+            desiredDistance = rxInt;
+
+            while (!receiveTransmission()) {
+              delay(1000);
+            }
+
+            switch (rxChar) {
+              case 'R':
+              case 'r': {
+                turn(desiredDistance, rxInt);
+              } break;
+              case 'L':
+              case 'l': {
+                turn(-desiredDistance, rxInt);
+              } break;
+            }
+
+            manualState = ARCING;
+            sendTransmission('M', 4);
           } break;
 
           case 'L':
           case 'l': {
-            // Turn left - int seconds
-            getWheelSpeeds(LEFT, 0, 0);
-            duration = rxInt;
+            // Store distance sensor min distance
+            desiredDistance = rxInt;
 
-            manualState = ROTATING;
-            wheelDrive();
-
-            sendTransmission('M', 4);
-          } break;
-
-          case 'R':
-          case 'r': {
-            // Turn right - int seconds
-            getWheelSpeeds(RIGHT, 0, 0);
-            duration = rxInt;
-
-            manualState = ROTATING;
-            wheelDrive();
-
-            sendTransmission('M', 5);
+            manualState = FOLLOWING;
           } break;
 
           case 'T':
@@ -75,16 +113,12 @@ void manualOperations(float dt) {
             // moveTo turret int degrees; <180 for left, >180 for right
             manualState = TURRET;
 
-            int moveDist;
-            
             if (rxInt <= 90) {
-              moveDist = 95*rxInt/stepSize;
+              moveTurretToAngle(rxInt);
             }
             else if (rxInt <= 180) {
-              moveDist = -95*(rxInt - 90)/stepSize;
+              moveTurretToAngle(-(rxInt - 90));
             }
-
-            turretMotor.move(moveDist);
 
             sendTransmission('M', 6);
           } break;
@@ -94,16 +128,12 @@ void manualOperations(float dt) {
             // moveTo second link int degrees; <180 for left, >180 for right
             manualState = ARM;
 
-            int moveDist;
-            
             if (rxInt <= 90) {
-              moveDist = 50*rxInt/stepSize;
+              moveArmToAngle(rxInt);
             }
             else if (rxInt <= 180) {
-              moveDist = -50*(rxInt - 90)/stepSize;
+              moveArmToAngle(-(rxInt - 90));
             }
-
-            armMotor.move(moveDist);
 
             sendTransmission('M', 7);
           } break;
@@ -113,16 +143,12 @@ void manualOperations(float dt) {
             // moveTo arm to int position; will do nothing if already in position
             manualState = TOWER;
             
-            int moveDist;
-            
             if (rxInt <= 90) {
-              moveDist = 80*rxInt/stepSize;
+              moveZToPos(rxInt/90.0);
             }
             else if (rxInt <= 180) {
-              moveDist = -80*(rxInt - 90)/stepSize;
+              moveZToPos(-(rxInt - 90.0)/90.0);
             }
-
-            zMotor.move(moveDist);
 
             sendTransmission('M', 9);
 
@@ -132,26 +158,11 @@ void manualOperations(float dt) {
             sendTransmission('M', 0);
           } break;
         }
-
-        timer = 0.0;
       }
     } break;
 
     case FOLLOWING: {
       float distance = getFrontDistance();
-
-      static long debugTimer = 0;
-      if (debugMode && millis() - debugTimer > 1000) {
-        debugPrintln("Speeds:");
-        debugPrint(leftWheelSpeed);
-        debugPrint(" ");
-        debugPrint(rightWheelSpeed);
-        debugPrintln("Distance:");
-        debugPrintln(distance);
-        debugPrintln("");
-
-        debugTimer = millis();
-      }
 
       if (distance < desiredDistance) {
         wheelBrake();
@@ -163,66 +174,31 @@ void manualOperations(float dt) {
         return;
       }
 
-      lineFollow(0.2);
+      // Line follow at 25% speed.
+      lineFollow(0.25);
 
     } break;
 
+    case ROTATING: {}
+    case ARCING: {}
     case MOVING: {
-      if (debugMode) {
-        debugPrint(timer);
-        debugPrint(" ");
-        debugPrintln(dt);
-      }
-
-      timer += dt;
-
-      if (timer > duration) {
-        wheelBrake();
-
-        manualState = WAITING;
-        
-        sendTransmission('M', 1);
-      }
-
-    } break;
-
-    case ROTATING: {
-      wheelDrive();
-
-      timer += dt;
-
-      if (timer > duration) {
-        wheelBrake();
-
+      if (!wheelDrive()) {
         manualState = WAITING;
 
         sendTransmission('M', 1);
       }
-
     } break;
 
-    case ARM: {
-      if (armMotor.distanceToGo() == 0) {
-        manualState = WAITING;
-
-        sendTransmission('M', 1);
-      } 
-    } break;
-
-    case TURRET: {
-      if (turretMotor.distanceToGo() == 0) {
-        manualState = WAITING;
-
-        sendTransmission('M', 1);
-      } 
-    } break;
-
+    case ARM: {}
+    case TURRET: {}
     case TOWER: {
-      if (zMotor.distanceToGo() == 0) {
+      if (finishedStepping()) {
         manualState = WAITING;
 
         sendTransmission('M', 1);
-      } 
+      }
+
+      runSteppers();
     } break;
   }
 }
