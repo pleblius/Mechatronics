@@ -63,11 +63,11 @@ void manualOperations() {
             switch (rxChar) {
               case 'R':
               case 'r': {
-                rotate(desiredDistance, rxInt);
+                rotate(-desiredDistance, rxInt);
               } break;
               case 'L':
               case 'l': {
-                rotate(-desiredDistance, rxInt);
+                rotate(desiredDistance, rxInt);
               } break;
             }
 
@@ -88,11 +88,11 @@ void manualOperations() {
             switch (rxChar) {
               case 'R':
               case 'r': {
-                turn(desiredDistance, rxInt);
+                turn(-desiredDistance, rxInt);
               } break;
               case 'L':
               case 'l': {
-                turn(-desiredDistance, rxInt);
+                turn(desiredDistance, rxInt);
               } break;
             }
 

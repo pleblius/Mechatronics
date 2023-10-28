@@ -44,6 +44,7 @@ void runSteppers() {
   armMotor.run();
 }
 
+/*  Returns true if the steppers are done moving, false otherwise. */
 bool finishedStepping() {
   return zMotor.distanceToGo() == 0 &&
     armMotor.distanceToGo() == 0 &&

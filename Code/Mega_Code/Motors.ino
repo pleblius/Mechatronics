@@ -165,15 +165,11 @@ void getPinSpeeds() {
   int rightDir = 1;
 
   if (leftOutput < 0) leftDir = 0;
-  if (rightOutput < 0) rightDir = 0;
-  
-  // Get PWM output ratio from output speed
-  float leftAnalog = leftOutput*5.0;                        
-  float rightAnalog = rightOutput*5.0;                      
+  if (rightOutput < 0) rightDir = 0;              
 
-  // Convert PWM to analogWrite
-  int leftWrite = (int)leftAnalog*51;
-  int rightWrite = (int)rightAnalog*51;
+  // Convert PWM ratio to analogWrite
+  int leftWrite = (int)leftOutput*255;
+  int rightWrite = (int)rightOutput*255;
 
   // Set pin speeds to analogWrite values
   DC2Speed = leftDir*leftWrite;
@@ -213,6 +209,7 @@ void wheelBrake() {
  */
 void driveStraight(float dist, float speed) {
   int direction = (dist > 0) - (dist < 0);
+
   // Convert speed from cm/s to deg/s
   avgSpeedDes = direction*abs(speed)*degPerCm;
 
@@ -228,7 +225,9 @@ void driveStraight(float dist, float speed) {
  *  Positive values are counter-clockwise and negative values are clockwise.
  */
 void rotate(float dist, float speed) {
-  avgSpeedDes = speed*bodyWheelRatio;
+  int direction = (dist > 0) - (dist < 0);
+
+  avgSpeedDes = direction*speed*bodyWheelRatio;
 
   // If avgSpeed > 0, leftSpeed should be negative for CCW movement
   leftSpeedDes = -avgSpeedDes;

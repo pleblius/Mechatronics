@@ -49,9 +49,6 @@ enum Block : char {
 char rxChar;
 int rxInt;
 
-unsigned long timer = 0;
-bool goodToPrint = true;
-
 void setup() {
   state = STARTUP;
   debugMode = ON;

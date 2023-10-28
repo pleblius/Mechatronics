@@ -26,6 +26,9 @@ uint16_t maxValues[SENSORCOUNT]{1632, 1228, 1384, 1460, 1220, 1452, 1628, 1628, 
 // Proportionality Constant
 float LFKp;
 
+// Line thickness for intersection checking
+int lineThickness = 4;
+
 /*  Sets up the line-following array, intializing the sensor to the proper pins and
  *  adjusting the calibration values.
  */
@@ -71,7 +74,24 @@ float getLineError() {
   if (debugMode) {
     debugPrintln("Sensor Values:");
   }
-  // Map the sensor reading to their calibrated range
+
+  mapSensorReadings();
+
+  if (atIntersection()) {
+    return 0;
+  }
+
+  // Calculate which sensor the line is centered beneath
+  float location = getLineLocation();
+
+  // return difference from nominal
+  return d0 - location;
+}
+
+/*  Maps the sensor readings to their full input range based on calibrated white and black readings. */
+void mapSensorReadings() {
+
+  // Constrain values to min and max of range
   for (int i = 0; i < SENSORCOUNT; i++) {
     if (sensorValues[i] < baseValues[i]) {
       sensorValues[i] = baseValues[i];
@@ -87,8 +107,10 @@ float getLineError() {
       debugPrint(" ");
     }
   }
+}
 
-  // Calculate which sensor the line is centered beneath
+/*  Gets the specific sensor that the line is centered below using weighted averages for sensor readings. */
+float getLineLocation() {
   long readingSum = 0;
   long weightedSum = 0;
 
@@ -105,6 +127,25 @@ float getLineError() {
     debugPrintln("");
   }
 
-  // return difference from nominal
-  return d0 - location;
+  return location;
+}
+
+/*  Checks if the line-sensor has detected a three-way or four-way intersection.
+ *  Returns true if there is an intersection, or false otherwise.
+ */
+bool atIntersection() {
+  int triggerCount = 0;
+
+  // Count the number of flipped sensors
+  for (int i = 0; i < SENSORCOUNT; i++) {
+    if (sensorValues[i] > 1500) {
+      triggerCount++;
+    }
+  }
+
+  if (triggerCount > lineThickness) {
+    return true;
+  }
+
+  return false;
 }
