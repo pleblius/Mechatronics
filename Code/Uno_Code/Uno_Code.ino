@@ -177,37 +177,40 @@ void parseTransmission() {
 
         case 2: {
           Serial.println("");
-          Serial.println("Driving. Input direction [f/F/r/R] and speed (cm/s) [int].");
+          Serial.println("Driving. Input direction [f/F/r/R] and speed (in/s) [int].");
 
+          state = GETTING;
         } break;
 
         case 3: {
           Serial.println("");
           Serial.println("Rotating. Input direction [r/R/l/L] and speed (deg/s) [int]");
 
+          state = GETTING;
         } break;
 
         case 4: {
           Serial.println("");
-          Serial.println("Turning. Input direction [r/R/l/L] and speed (cm/s) [int]");
+          Serial.println("Turning. Input direction [r/R/l/L] and speed (in/s) [int]");
 
+          state = GETTING;
         } break;
 
         case 5: {
           Serial.println("");
-          Serial.println("Moving turret.");
+          Serial.println("Line Following.");
 
         } break;
 
         case 6: {
           Serial.println("");
-          Serial.println("Moving arm.");
+          Serial.println("Moving Turret.");
 
         } break;
 
         case 7: {
           Serial.println("");
-          Serial.println("Moving wrist.");
+          Serial.println("Moving Arm.");
 
         } break;
 
@@ -217,10 +220,20 @@ void parseTransmission() {
 
         } break;
 
-        case 9: {
+        case 12: {
           Serial.println("");
-          Serial.println("Line Following.");
-        }
+          Serial.println("Driving Forward");
+        } break;
+
+        case 13: {
+          Serial.println("");
+          Serial.println("Rotating");
+        } break;
+
+        case 14: {
+          Serial.println("");
+          Serial.println("Turning");
+        } break;
       }
     } break;
 

@@ -10,8 +10,11 @@
 #define OFF false
 #define ON true
 bool debugMode;
+unsigned long timer = 0;
+unsigned long dt = 0;
+unsigned long dtTimer = 100;
 
-float pi = 3.1416;
+const float pi = 3.1416;
 
 // Holds the robot state. Use MANUAL to manually input commands for testing.
 // All other states are for automatic control/competition.
@@ -50,6 +53,7 @@ char rxChar;
 int rxInt;
 
 void setup() {
+  wheelBrake();
   state = STARTUP;
   debugMode = ON;
 
@@ -76,6 +80,12 @@ void setup() {
 }
 
 void loop() {
+  // Loop timing
+  unsigned static long lastUpdate;
+  dt = millis() - lastUpdate;
+  lastUpdate = millis();
+  timer += dt;
+
   switch (state) {
     case STARTUP: {
       checkManualControl();
@@ -124,5 +134,9 @@ void loop() {
     default: {
 
     }
+  }
+
+  if (timer > dtTimer) {
+    timer = 0;
   }
 }

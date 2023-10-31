@@ -4,7 +4,7 @@
 void serialSetup() {
   Serial.begin(9600);
   Serial3.begin(9600);
-  delay(1000);
+  delay(dtTimer);
 
   // Send manual prompt
   sendTransmission('M', 0);
@@ -75,40 +75,94 @@ void sendTransmission(char txChar, int txInt) {
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(char* str) {
+  if (timer > dtTimer) {
     Serial.println(str);
+  }
 }
 
 /*  Sends the given string to the serial comms devicce, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(char* str) {
+  if (timer > dtTimer) {
     Serial.print(str);
+  }
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(float f) {
+  if (timer > dtTimer) {
     Serial.println(f);
+  }
 }
 
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(float f) {  
+  if (timer > dtTimer) {
     Serial.print(f);
+  }
 }
 
 /*  Sends the given int to the serial comms device, for printout to the screen
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(int f) {
+  if (timer > dtTimer) {
     Serial.println(f);
+  }
 }
 
 /*  Sends the given int to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(int f) {
-    Serial.print(f);
+  if (timer > dtTimer) {
+    Serial.println(f);
+  }
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Ends with a newline character.
+ */
+void debugPrintln(long f) {
+  if (timer > dtTimer) {
+    Serial.println(f);
+  }
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Does not terminate the line.
+ */
+void debugPrint(long f) {
+  if (timer > dtTimer) {
+    Serial.println(f);
+  }
+}
+
+void forcedPrintln(char* str) {
+  Serial.println(str);
+}
+
+void forcedPrint(char* str) {
+  Serial.print(str);
+}
+
+void forcedPrintln(int f) {
+  Serial.println(f);
+}
+
+void forcedPrint(int f) {
+  Serial.print(f);
+}
+
+void forcedPrintln(float f) {
+  Serial.println(f);
+}
+
+void forcedPrint(float f) {
+  Serial.print(f);
 }

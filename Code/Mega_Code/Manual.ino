@@ -1,8 +1,6 @@
 enum ManualState {
   WAITING,
   MOVING,
-  ROTATING,
-  ARCING,
   FOLLOWING,
   ARM,
   TURRET,
@@ -16,9 +14,6 @@ float desiredDistance;
  *  Can only perform one operation at a time.
  */
 void manualOperations() {
-  static unsigned long lastUpdate = 0;
-  float dt = float(millis() - lastUpdate)/1000.0;
-  lastUpdate = millis();
 
   switch (manualState) {
     case WAITING: {
@@ -30,6 +25,8 @@ void manualOperations() {
           case 'd': {
             // Store distance to drive
             desiredDistance = rxInt;
+
+            sendTransmission('M', 2);
 
             while (!receiveTransmission()) {
               delay(1000);
@@ -44,10 +41,14 @@ void manualOperations() {
               case 'r': {
                 driveStraight(-desiredDistance, rxInt);
               } break;
+              default: {
+                sendTransmission('X', 100);
+              } break;
             }
 
             manualState = MOVING;
-            sendTransmission('M', 2);
+            sendTransmission('M', 12);
+
           } break;
           
           // Rotate in place
@@ -55,6 +56,8 @@ void manualOperations() {
           case 'r': {
             // Store turn angle
             desiredDistance = rxInt;
+
+            sendTransmission('M', 3);
 
             while (!receiveTransmission()) {
               delay(1000);
@@ -69,10 +72,13 @@ void manualOperations() {
               case 'l': {
                 rotate(desiredDistance, rxInt);
               } break;
+              default: {
+                sendTransmission('X', 100);
+              } break;
             }
 
-            manualState = ROTATING;
-            sendTransmission('M', 3);
+            manualState = MOVING;
+            sendTransmission('M', 13);
           } break;
 
           // Turn in a circular arc
@@ -80,6 +86,8 @@ void manualOperations() {
           case 'c': {
             // Store turn radius (cm)
             desiredDistance = rxInt;
+
+            sendTransmission('M', 4);
 
             while (!receiveTransmission()) {
               delay(1000);
@@ -94,10 +102,13 @@ void manualOperations() {
               case 'l': {
                 turn(desiredDistance, rxInt);
               } break;
+              default: {
+                sendTransmission('X', 100);
+              } break;
             }
 
-            manualState = ARCING;
-            sendTransmission('M', 4);
+            manualState = MOVING;
+            sendTransmission('M', 14);
           } break;
 
           case 'L':
@@ -106,6 +117,8 @@ void manualOperations() {
             desiredDistance = rxInt;
 
             manualState = FOLLOWING;
+
+            sendTransmission('M', 5);
           } break;
 
           case 'T':
@@ -150,12 +163,12 @@ void manualOperations() {
               moveZToPos(-(rxInt - 90.0)/90.0);
             }
 
-            sendTransmission('M', 9);
+            sendTransmission('M', 8);
 
           } break;
 
           default: {
-            sendTransmission('M', 0);
+            sendTransmission('X', 100);
           } break;
         }
       }
@@ -179,18 +192,21 @@ void manualOperations() {
 
     } break;
 
-    case ROTATING: {}
-    case ARCING: {}
     case MOVING: {
-      if (!wheelDrive()) {
-        manualState = WAITING;
+      if (atDestination()) {
+        resetMotors();
 
-        sendTransmission('M', 1);
+        wheelBrake();
+
+        sendTransmission('M',1);
+        manualState = WAITING;
       }
+
+      wheelDrive();
     } break;
 
-    case ARM: {}
-    case TURRET: {}
+    case ARM: {} break;
+    case TURRET: {} break;
     case TOWER: {
       if (finishedStepping()) {
         manualState = WAITING;

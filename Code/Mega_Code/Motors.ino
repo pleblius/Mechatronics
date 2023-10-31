@@ -25,18 +25,18 @@ float leftSpeedDes;
 float rightSpeed;
 float rightSpeedDes;
 
-float leftAngle = 0.0;
-float leftAngleOld = 0.0;
+float leftAngle;
+float leftAngleOld;
 float leftAngleDes;
 float leftAngleFinal;
 
-float rightAngle = 0.0;
-float rightAngleOld = 0.0;
+float rightAngle;
+float rightAngleOld;
 float rightAngleDes;
 float rightAngleFinal;
 
 // Encoders
-Encoder leftEncoder(ENCL1, ENCL2);
+Encoder leftEncoder(ENCL2, ENCL1);
 Encoder rightEncoder(ENCR1, ENCR2);
 long leftCount;
 long rightCount;
@@ -57,10 +57,10 @@ long countsPerRevolution = 64*gearRatio;
 float revPerCount = 1.0/float(countsPerRevolution);
 float degPerCount = 360.0*revPerCount;
 
-float wheelRadius = 4.2;
-float degPerCm = 180.0/wheelRadius/pi;
-float wheelDistance = 26.0;
-float bodyWheelRatio = wheelDistance*0.5/wheelRadius;
+float wheelRadius = 4.2/2.54;
+float degPerIn = 180.0/wheelRadius/pi;
+float wheelWidth = 9.2;
+float bodyWheelRatio = wheelWidth*0.5/wheelRadius;
 
 /*  Sets up the DC motors that drive the wheels. Assigns the motors to the correct pins and prepares them for
  *  operation.
@@ -77,6 +77,12 @@ void motorSetup() {
 
   // Constrain motors to 50% speed;
   maxMotorSpeed = 0.5;
+
+  // Set proportionality
+  Kp = 0.5;
+
+  // Set all values to 0
+  resetMotors();
 }
 
 /*  Wheel driving loop function. Updates position and velocity via encoder, then calculates new velocity
@@ -84,62 +90,62 @@ void motorSetup() {
  *  Call every loop to re-calculate drive characteristics for closed-loop control while dead-reckoning.
  *  Returns true while the wheels have distance to cover, and false when they have reached their desired angle.
  */
-bool wheelDrive() {
-  static unsigned long lastUpdate = 0;
-  float dt = float(millis() - lastUpdate)/1000.0;
-  lastUpdate = millis();
+void wheelDrive() {
 
-  // Check if destination reached
-  if (leftAngleDes == leftAngleFinal && rightAngleDes == rightAngleFinal) {
-    return true;
-  }
+  // if (debugMode) {
+  //   debugPrintln("Wheel Angles: ");
+  //   debugPrint(leftAngle); debugPrint(" ");
+  //   debugPrint(leftAngleDes); debugPrint(" ");
+  //   debugPrintln(leftAngleFinal);
+  //   debugPrint(rightAngle); debugPrint(" ");
+  //   debugPrint(rightAngleDes); debugPrint(" ");
+  //   debugPrintln(rightAngleFinal);
+  // }
 
   // Update wheel position and velocity
   leftCount = leftEncoder.read();
   rightCount = rightEncoder.read();
+  
+  // if (debugMode) {
+  //   debugPrint("Counts: ");
+  //   debugPrint(leftCount); debugPrint(" "); debugPrintln(rightCount);
+  // }
 
+  // Convert encoder counts to angles in degrees
   leftAngle = leftCount*degPerCount;
   rightAngle = rightCount*degPerCount;
 
-  leftSpeed = (leftAngle - leftAngleOld)/dt;
-  rightSpeed = (rightAngle - rightAngleOld)/dt;
+  // Calculate angular speed in degrees/second
+  // leftSpeed = (leftAngle - leftAngleOld)/dt;
+  // rightSpeed = (rightAngle - rightAngleOld)/dt;
 
   // Get new desired position
-  leftAngleDes += leftSpeedDes*dt;
-  rightAngleDes += rightSpeedDes*dt;
+  if (!abs(leftAngleDes) >= abs(leftAngleFinal)) {
+    leftAngleDes += leftSpeedDes*dt;
+  }
+  if (!abs(rightAngleDes) >= abs(rightAngleFinal)) {
+    rightAngleDes += rightSpeedDes*dt;
+  }
 
   // Get desired wheel speeds from closed-loop equation
   leftOutput = Kp*(leftAngleDes - leftAngle);
   rightOutput = Kp*(rightAngleDes - rightAngle);
 
-  // Constrain to max speed (will constrain both motors and keep the speed ratios the same)
-  if (leftOutput > maxMotorSpeed) {
-    leftOutput = maxMotorSpeed;
-    rightOutput *= maxMotorSpeed/leftOutput;
-  } else if (-leftOutput > maxMotorSpeed) {
-    leftOutput = -maxMotorSpeed;
-    rightOutput *= -maxMotorSpeed/leftOutput;
-  }
-  if (rightOutput > maxMotorSpeed) {
-    rightOutput = maxMotorSpeed;
-    leftOutput *= maxMotorSpeed/rightOutput;
-  } else if (-rightOutput > maxMotorSpeed) {
-    rightOutput = -maxMotorSpeed;
-    leftOutput *= -maxMotorSpeed/rightOutput;
-  }
+  // if (debugMode) {
+  //   debugPrintln("OUTPUT SPEEDS: ");
+  //   debugPrint(leftOutput); debugPrint("  "); debugPrint(rightOutput);
+  // }
+
+  // Constrain speeds to within maximum speed range
+  constrainSpeeds();
 
   // Get and output necessary drive voltage
   getPinSpeeds();
+  writePinSpeeds();
 
-  analogWrite(IN1, DC1Speed);
-  analogWrite(IN2, DC2Speed);
-  analogWrite(IN3, DC3Speed);
-  analogWrite(IN4, DC4Speed);
-
+  // Cache old angles for speed calculation
   leftAngleOld = leftAngle;
   rightAngleOld = rightAngle;
-
-  return false;
 }
 
 /*  Drives the wheels based on the provided wheel speeds, given from
@@ -149,6 +155,14 @@ void wheelDriveSpeed(float leftSpeed, float rightSpeed) {
   leftOutput = leftSpeed;
   rightOutput = rightSpeed;
 
+  constrainSpeeds();
+
+  // if (debugMode) {
+  //   debugPrintln("Speeds: ");
+  //   debugPrint(leftOutput); debugPrint(" ");
+  //   debugPrintln(rightOutput);
+  // }
+
   getPinSpeeds();
 
   analogWrite(IN1, DC1Speed);
@@ -157,68 +171,53 @@ void wheelDriveSpeed(float leftSpeed, float rightSpeed) {
   analogWrite(IN4, DC4Speed);
 }
 
-/*  Converts the desired wheel speeds into analog pin speeds.
- */
-void getPinSpeeds() {
-  // Checks wheel direction and adjusts which pins are high and low accordingly
-  int leftDir = 1;
-  int rightDir = 1;
-
-  if (leftOutput < 0) leftDir = 0;
-  if (rightOutput < 0) rightDir = 0;              
-
-  // Convert PWM ratio to analogWrite
-  int leftWrite = (int)leftOutput*255;
-  int rightWrite = (int)rightOutput*255;
-
-  // Set pin speeds to analogWrite values
-  DC2Speed = leftDir*leftWrite;
-  DC1Speed = (1-leftDir)*leftWrite;
-  DC4Speed = (1-rightDir)*rightWrite;
-  DC3Speed = rightDir*rightWrite;
-
-  if (debugMode) {
-    debugPrintln("Pin speeds:");
-    debugPrintln(DC1Speed);
-    debugPrintln(DC2Speed);
-    debugPrintln(DC3Speed);
-    debugPrintln(DC4Speed);
-  }
-}
-
-/*  Brakes the DC Motors controlling the wheels.
- */
+/*  Brakes the DC Motors controlling the wheels. */
 void wheelBrake() {
+  // Set all pins to max for magnetic braking
   DC1Speed = 255;
   DC2Speed = 255;
   DC3Speed = 255;
   DC4Speed = 255;
 
-  analogWrite(IN1, DC1Speed);
-  analogWrite(IN2, DC2Speed);
-  analogWrite(IN3, DC3Speed);
-  analogWrite(IN4, DC4Speed);
+  writePinSpeeds();
 
   if (debugMode) {
-    Serial.println("Braking.");
+    forcedPrintln("Braking.");
   }
 }
 
-/*  Drive straight for the given distance (cm) at the given speed (cm/s).
+/*  Drive straight for the given distance (in) at the given speed (in/s).
  *  use negative directions for reverse movement.
  */
 void driveStraight(float dist, float speed) {
   int direction = (dist > 0) - (dist < 0);
 
-  // Convert speed from cm/s to deg/s
-  avgSpeedDes = direction*abs(speed)*degPerCm;
+  // Reset encoders
+  leftEncoder.write(0);
+  rightEncoder.write(0);
+  leftCount = 0;
+  rightCount = 0;
+
+  // Convert speed from in/s to deg/s
+  avgSpeedDes = direction*abs(speed)*degPerIn;
+
+  if (debugMode) {
+    forcedPrintln("Average desired speed: ");
+    forcedPrintln(avgSpeedDes);
+  }
 
   leftSpeedDes = avgSpeedDes;
   rightSpeedDes = avgSpeedDes;
 
-  // Convert distances from cm to deg
-  leftAngleFinal = dist*degPerCm;
+  // Convert distances from in to deg
+  leftAngleFinal = dist*degPerIn;
   rightAngleFinal = leftAngleFinal;
+
+  if (debugMode) {
+    forcedPrintln("Final angles: ");
+    forcedPrintln(leftAngleFinal);
+    forcedPrintln(rightAngleFinal);
+  }
 }
 
 /*  Rotate in place a given angular distance (deg) at a given speed (deg/s).
@@ -227,7 +226,18 @@ void driveStraight(float dist, float speed) {
 void rotate(float dist, float speed) {
   int direction = (dist > 0) - (dist < 0);
 
-  avgSpeedDes = direction*speed*bodyWheelRatio;
+  // Reset encoders
+  leftEncoder.write(0);
+  rightEncoder.write(0);
+  leftCount = 0;
+  rightCount = 0;
+
+  avgSpeedDes = direction*abs(speed)*bodyWheelRatio;
+
+  if (debugMode) {
+    forcedPrintln("Average desired speed: ");
+    forcedPrintln(avgSpeedDes);
+  }
 
   // If avgSpeed > 0, leftSpeed should be negative for CCW movement
   leftSpeedDes = -avgSpeedDes;
@@ -235,19 +245,31 @@ void rotate(float dist, float speed) {
 
   leftAngleFinal = -dist*bodyWheelRatio;
   rightAngleFinal = -leftAngleFinal;
+
+  if (debugMode) {
+    forcedPrintln("Final angles: ");
+    forcedPrintln(leftAngleFinal);
+    forcedPrintln(rightAngleFinal);
+  }
 }
 
-/*  Turn in a circular arc of the given inner-wheel radius (cm) with the given average wheel speed (cm/s).
+/*  Turn in a circular arc of the given inner-wheel radius (in) with the given average wheel speed (in/s).
  *  Positive values are counter-clockwise and negative values are clockwise.
  */
 void turn(float radius, float speed) {
   float turnRadius = abs(radius);
 
-  float bodyTurnRatio = (wheelDistance + turnRadius)/turnRadius;
+  float bodyTurnRatio = (wheelWidth + turnRadius)/turnRadius;
   float wheelTurnRatio = turnRadius/wheelRadius;
 
-  // Convert speed from cm/s to deg/s
-  avgSpeedDes = speed*degPerCm;
+  // Reset encoders
+  leftEncoder.write(0);
+  rightEncoder.write(0);
+  leftCount = 0;
+  rightCount = 0;
+
+  // Convert speed from in/s to deg/s
+  avgSpeedDes = speed*degPerIn;
 
   if (radius > 0.0) {
     leftSpeedDes = 2.0*avgSpeedDes/(1.0 + bodyTurnRatio);
@@ -262,4 +284,96 @@ void turn(float radius, float speed) {
     rightAngleFinal = 180.0*wheelTurnRatio;
     leftAngleFinal = 180.0*bodyTurnRatio*wheelTurnRatio;
   }
+}
+
+/*  Converts the desired wheel speeds (0.0-1.0) into analog pin speeds (0-255).
+ */
+void getPinSpeeds() {
+  // Checks wheel direction and adjusts which pins are high and low accordingly
+  int leftDir = 1;
+  int rightDir = 1;
+
+  if (leftOutput < 0) leftDir = 0;
+  if (rightOutput < 0) rightDir = 0;              
+
+  // Convert PWM ratio to analogWrite
+  int leftWrite = leftOutput*255;
+  int rightWrite = rightOutput*255;
+
+  // Set pin speeds to analogWrite values
+  DC2Speed = (1-leftDir)*leftWrite;
+  DC1Speed = (leftDir)*leftWrite;
+  DC4Speed = rightDir*rightWrite;
+  DC3Speed = (1-rightDir)*rightWrite;
+
+  // if (debugMode) {
+  //   debugPrintln("Pin speeds:");
+  //   debugPrintln(DC1Speed);
+  //   debugPrintln(DC2Speed);
+  //   debugPrintln(DC3Speed);
+  //   debugPrintln(DC4Speed);
+  // }
+}
+
+/*  Writes the defined analog pin speeds to the defined analog pins. */
+void writePinSpeeds() {
+  analogWrite(IN1, DC1Speed);
+  analogWrite(IN2, DC2Speed);
+  analogWrite(IN3, DC3Speed);
+  analogWrite(IN4, DC4Speed);
+
+}
+
+/*  Constrains the left and right output values to be within the defined maximum speed range set by
+ *  +- maxMotorSpeed. Both values are scaled appropriately to maintain speed ratio, with signs left unchanged.
+ */
+void constrainSpeeds() {
+  if (leftOutput > maxMotorSpeed) {
+    leftOutput = maxMotorSpeed;
+    rightOutput *= maxMotorSpeed/leftOutput;
+  } else if (-leftOutput > maxMotorSpeed) {
+    leftOutput = -maxMotorSpeed;
+    rightOutput *= -maxMotorSpeed/leftOutput;
+  }
+  if (rightOutput > maxMotorSpeed) {
+    rightOutput = maxMotorSpeed;
+    leftOutput *= maxMotorSpeed/rightOutput;
+  } else if (-rightOutput > maxMotorSpeed) {
+    rightOutput = -maxMotorSpeed;
+    leftOutput *= -maxMotorSpeed/rightOutput;
+  }
+}
+
+/*  Checks if the wheels have reached their final calculated position. */
+bool atDestination() {
+  return abs(leftAngle) >= abs(leftAngleFinal) && abs(rightAngle) > abs(rightAngle);
+}
+
+/*  Resets motor control configuration for future controls. Erases all desired angles and speeds and set
+ *  encoders back to 0.
+ */
+void resetMotors() {
+  leftEncoder.write(0);
+  rightEncoder.write(0);
+  leftCount = 0;
+  rightCount = 0;
+
+  avgSpeedDes = 0.0;
+  leftOutput = 0.0;
+  rightOutput = 0.0;
+
+  leftSpeed = 0.0;
+  leftSpeedDes = 0.0;
+  rightSpeed = 0.0;
+  rightSpeedDes = 0.0;
+
+  leftAngle = 0.0;
+  leftAngleOld = 0.0;
+  leftAngleDes = 0.0;
+  leftAngleFinal = 0.0;
+
+  rightAngle = 0.0;
+  rightAngleOld = 0.0;
+  rightAngleDes = 0.0;
+  rightAngleFinal = 0.0;
 }
