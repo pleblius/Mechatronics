@@ -4,16 +4,14 @@
 void serialSetup() {
   Serial.begin(9600);
   Serial3.begin(9600);
-  delay(dtTimer);
-
-  // Send manual prompt
-  sendTransmission('M', 0);
 }
 
 /*  Gets user input if manual control is necessary. If so, enables it.
- *  WARNING: This code blocks.
  */
 void checkManualControl() {
+  // Send manual prompt
+  sendTransmission('M', 0);
+  
   if (receiveTransmission()) {
     Serial.println(rxChar);
     Serial.println(rxInt);

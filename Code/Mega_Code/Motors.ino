@@ -58,7 +58,7 @@ float revPerCount = 1.0/float(countsPerRevolution);
 float degPerCount = 360.0*revPerCount;
 
 float wheelRadius = 4.2/2.54;
-float degPerIn = 180.0/wheelRadius/pi;
+float degPerIn = 180.0/wheelRadius/PI;
 float wheelWidth = 9.2;
 float bodyWheelRatio = wheelWidth*0.5/wheelRadius;
 
@@ -79,7 +79,7 @@ void motorSetup() {
   maxMotorSpeed = 0.5;
 
   // Set proportionality
-  Kp = 0.5;
+  Kp = 0.02;
 
   // Set all values to 0
   resetMotors();
@@ -115,26 +115,29 @@ void wheelDrive() {
   leftAngle = leftCount*degPerCount;
   rightAngle = rightCount*degPerCount;
 
+
   // Calculate angular speed in degrees/second
   // leftSpeed = (leftAngle - leftAngleOld)/dt;
   // rightSpeed = (rightAngle - rightAngleOld)/dt;
 
   // Get new desired position
-  if (!abs(leftAngleDes) >= abs(leftAngleFinal)) {
-    leftAngleDes += leftSpeedDes*dt;
+  if (!(abs(leftAngleDes) >= abs(leftAngleFinal))) {
+    debugPrintln("left");
+    leftAngleDes += leftSpeedDes*dt/1000.;
   }
-  if (!abs(rightAngleDes) >= abs(rightAngleFinal)) {
-    rightAngleDes += rightSpeedDes*dt;
+  if (!(abs(rightAngleDes) >= abs(rightAngleFinal))) {
+    rightAngleDes += rightSpeedDes*dt/1000.;
+    debugPrintln("right");
   }
 
   // Get desired wheel speeds from closed-loop equation
   leftOutput = Kp*(leftAngleDes - leftAngle);
   rightOutput = Kp*(rightAngleDes - rightAngle);
 
-  // if (debugMode) {
-  //   debugPrintln("OUTPUT SPEEDS: ");
-  //   debugPrint(leftOutput); debugPrint("  "); debugPrint(rightOutput);
-  // }
+  if (debugMode) {
+    debugPrintln("OUTPUT SPEEDS: ");
+    debugPrint(leftOutput); debugPrint("  "); debugPrint(rightOutput);
+  }
 
   // Constrain speeds to within maximum speed range
   constrainSpeeds();
@@ -217,6 +220,8 @@ void driveStraight(float dist, float speed) {
     forcedPrintln("Final angles: ");
     forcedPrintln(leftAngleFinal);
     forcedPrintln(rightAngleFinal);
+    forcedPrintln(leftSpeedDes);
+    forcedPrintln(rightSpeedDes);
   }
 }
 
@@ -250,6 +255,8 @@ void rotate(float dist, float speed) {
     forcedPrintln("Final angles: ");
     forcedPrintln(leftAngleFinal);
     forcedPrintln(rightAngleFinal);
+    forcedPrintln(leftSpeedDes);
+    forcedPrintln(rightSpeedDes);
   }
 }
 
@@ -346,7 +353,7 @@ void constrainSpeeds() {
 
 /*  Checks if the wheels have reached their final calculated position. */
 bool atDestination() {
-  return abs(leftAngle) >= abs(leftAngleFinal) && abs(rightAngle) > abs(rightAngle);
+  return (abs(leftAngleDes) >= abs(leftAngleFinal)) && (abs(rightAngleDes) > abs(rightAngleFinal));
 }
 
 /*  Resets motor control configuration for future controls. Erases all desired angles and speeds and set

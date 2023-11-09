@@ -15,14 +15,15 @@ enum State {
   RECEIVING,
   GETTING
 };
-enum State state;
+State state;
 
 void setup() {
   Serial.begin(9600);
   mySerial.begin(9600);
   delay(1000);
   
-  Serial.println("Welcome");
+  Serial.println(F("Welcome"));
+
   state = RECEIVING;
 }
 
@@ -32,7 +33,7 @@ void loop() {
       txChar = 0;
       txInt = 0;
       
-      Serial.println("Waiting for data.");
+      Serial.println(F("Waiting for data."));
 
       state = RECEIVING;
     } break;
@@ -58,7 +59,7 @@ void loop() {
 /*  Prompts the user for data.
  */
 void printPrompt() {
-  Serial.println("Please input a [char][int] into the serial monitor.");
+  Serial.println(F("Please input a [char][int] into the serial monitor."));
 }
 
 /*  Gets input from the user. Input needs to be in the form [char][int].
@@ -72,7 +73,7 @@ bool getUserInput() {
     if (!gotChar) {
       txChar = Serial.read();
 
-      Serial.print("Char: ");
+      Serial.print(F("Char: "));
       Serial.println(txChar);
 
       gotChar = true;
@@ -84,7 +85,7 @@ bool getUserInput() {
         txInt = Serial.read() - 48 + 10*txInt;
       }
 
-      Serial.print("Int: ");
+      Serial.print(F("Int: "));
       Serial.println(txInt);
 
       gotChar = false;
@@ -108,9 +109,9 @@ bool receiveTransmission() {
       rxChar = mySerial.read();
       rxInt = mySerial.read();
 
-      Serial.print("Received character: ");
+      Serial.print(F("Received character: "));
       Serial.println(rxChar);
-      Serial.print("Received Int: ");
+      Serial.print(F("Received Int: "));
       Serial.println(rxInt);
 
       return true;
@@ -148,91 +149,100 @@ void parseTransmission() {
     case 'M': {
       switch(rxInt) {
         case 0: {
-          Serial.println("Manual control?");
-          Serial.println("Input (y/n) and any number");
+          Serial.println(F("Manual control?"));
+          Serial.println(F("Input (y/n) and any number"));
 
           state = GETTING;
         } break;
 
         case 100: {
-          Serial.println("");
-          Serial.println("Manual mode entered. The following commands are available:");
-          Serial.println("Line-following until [int] distance: l/L [int]");
-          Serial.println("Drive via dead-reckoning: d/D [dist]");
-          Serial.println("Rotate in place [int] degrees: r/R [angle]");
-          Serial.println("Move turret [int] degrees: t/T [int] left: [0 90] right: [91 180]");
-          Serial.println("Move arm [int] degrees: a/A [int] left: [0 90] right: [91 180]");
-          Serial.println("Move arm to vertical position [int]: z/Z [int] [0 1]");
-          Serial.println("");
+          Serial.println(F(""));
+          Serial.println(F("Manual mode entered. The following commands are available:"));
+          Serial.println(F("Line-following until [int] distance: l/L [int]"));
+          Serial.println(F("Drive via dead-reckoning: d/D [dist]"));
+          Serial.println(F("Rotate in place [int] degrees: r/R [angle]"));
+          Serial.println(F("Move turret [int] degrees: t/T [int] left: [0 90] right: [91 180]"));
+          Serial.println(F("Move arm [int] degrees: a/A [int] left: [0 90] right: [91 180]"));
+          Serial.println(F("Move arm to vertical position [int]: z/Z [int] [0 1]"));
+          Serial.println(F("Move to (x,y,z) position: x/X [int]"));
+          Serial.println(F("Begin autonomous block loading program: g/G [int]"));
+          Serial.println(F("Begin autonomous block placing program: p/P"));
+          Serial.println(F(""));
 
           state = GETTING;
         } break;
 
         case 1: {
-          Serial.println("");
-          Serial.println("New Command:");
+          Serial.println(F(""));
+          Serial.println(F("New Command:"));
 
           state = GETTING;
         } break;
 
         case 2: {
-          Serial.println("");
-          Serial.println("Driving. Input direction [f/F/r/R] and speed (in/s) [int].");
+          Serial.println(F(""));
+          Serial.println(F("Driving. Input direction [f/F/r/R] and speed (in/s) [int]."));
 
           state = GETTING;
         } break;
 
         case 3: {
-          Serial.println("");
-          Serial.println("Rotating. Input direction [r/R/l/L] and speed (deg/s) [int]");
+          Serial.println(F(""));
+          Serial.println(F("Rotating. Input direction [r/R/l/L] and speed (deg/s) [int]"));
 
           state = GETTING;
         } break;
 
         case 4: {
-          Serial.println("");
-          Serial.println("Turning. Input direction [r/R/l/L] and speed (in/s) [int]");
+          Serial.println(F(""));
+          Serial.println(F("Turning. Input direction [r/R/l/L] and speed (in/s) [int]"));
 
           state = GETTING;
         } break;
 
         case 5: {
-          Serial.println("");
-          Serial.println("Line Following.");
+          Serial.println(F(""));
+          Serial.println(F("Line Following."));
 
         } break;
 
         case 6: {
-          Serial.println("");
-          Serial.println("Moving Turret.");
+          Serial.println(F(""));
+          Serial.println(F("Moving Turret."));
 
         } break;
 
         case 7: {
-          Serial.println("");
-          Serial.println("Moving Arm.");
+          Serial.println(F(""));
+          Serial.println(F("Moving Arm."));
 
         } break;
 
         case 8: {
-          Serial.println("");
-          Serial.println("Moving vertically");
+          Serial.println(F(""));
+          Serial.println(F("Moving vertically"));
 
+        } break;
+
+        case 9: {
+          Serial.println(F(""));
+          Serial.println(F("Next coordinate: "));
+          state = GETTING;
+        } break;
+
+        case 10: {
+          Serial.println(F(""));
+          Serial.println(F("Moving to specified coordinates."));
+        } break;
+
+        case 11: {
+          Serial.println(F(""));
+          Serial.println(F("Running autonomous block-loading program."));
         } break;
 
         case 12: {
-          Serial.println("");
-          Serial.println("Driving Forward");
-        } break;
-
-        case 13: {
-          Serial.println("");
-          Serial.println("Rotating");
-        } break;
-
-        case 14: {
-          Serial.println("");
-          Serial.println("Turning");
+          Serial.println(F(""));
+          Serial.println(F("Running autonomous block-placing program."));
         } break;
       }
     } break;
@@ -240,16 +250,16 @@ void parseTransmission() {
     case 'B': {
       switch(rxInt) {
         case 0: {
-          Serial.println("Beginning autonomous processing.");
-          Serial.println("Add block to chassis: [blocktype][position]");
-          Serial.println("Block type can be w/W, b/B, or f/F");
+          Serial.println(F("Beginning autonomous processing."));
+          Serial.println(F("Add block to chassis: [blocktype][position]"));
+          Serial.println(F("Block type can be w/W, b/B, or f/F"));
 
           state = GETTING;
 
         } break;
 
         case 1: {
-          Serial.println("Add additional blocks if desired:");
+          Serial.println(F("Add additional blocks if desired:"));
 
           state = GETTING;
 
@@ -260,13 +270,13 @@ void parseTransmission() {
     case 'S': {
       switch(rxInt) {
         case 0: {
-          Serial.println("Chassis set up. Awaiting START command: s/S 0");
+          Serial.println(F("Chassis set up. Awaiting START command: s/S 0"));
 
           state = GETTING;
         } break;
 
         case 1: {
-          Serial.println("Robot beginning autonomous operations.");
+          Serial.println(F("Robot beginning autonomous operations."));
 
           state = GETTING;
 
@@ -277,21 +287,21 @@ void parseTransmission() {
     case 'R': {
       switch(rxInt) {
         case 0: {
-          Serial.println("RESTART command available: r/R 0");
+          Serial.println(F("RESTART command available: r/R 0"));
 
           state = GETTING;
 
         } break;
 
         case 1: {
-          Serial.println("RESTART initiated!");
+          Serial.println(F("RESTART initiated!"));
 
         } break;
       }
     } break;
 
     default: {
-      Serial.println("Invalid command received.");
+      Serial.println(F("Invalid command received."));
 
       state = GETTING;
       

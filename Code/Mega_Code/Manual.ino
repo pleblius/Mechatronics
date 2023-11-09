@@ -2,13 +2,12 @@ enum ManualState {
   WAITING,
   MOVING,
   FOLLOWING,
-  ARM,
-  TURRET,
-  TOWER
+  STEPPERS,
+  POSITION,
 };
 enum ManualState manualState = WAITING;
 
-float desiredDistance;
+float desiredDistance = 0.0;
 
 /*  Controls robot behavior while in the manual control operational state.
  *  Can only perform one operation at a time.
@@ -29,7 +28,6 @@ void manualOperations() {
             sendTransmission('M', 2);
 
             while (!receiveTransmission()) {
-              delay(1000);
             }
 
             switch (rxChar) {
@@ -60,7 +58,6 @@ void manualOperations() {
             sendTransmission('M', 3);
 
             while (!receiveTransmission()) {
-              delay(1000);
             }
 
             switch (rxChar) {
@@ -90,7 +87,6 @@ void manualOperations() {
             sendTransmission('M', 4);
 
             while (!receiveTransmission()) {
-              delay(1000);
             }
 
             switch (rxChar) {
@@ -124,7 +120,7 @@ void manualOperations() {
           case 'T':
           case 't': {
             // moveTo turret int degrees; <180 for left, >180 for right
-            manualState = TURRET;
+            manualState = STEPPERS;
 
             if (rxInt <= 90) {
               moveTurretToAngle(rxInt);
@@ -139,7 +135,7 @@ void manualOperations() {
           case 'A':
           case 'a': {
             // moveTo second link int degrees; <180 for left, >180 for right
-            manualState = ARM;
+            manualState = STEPPERS;
 
             if (rxInt <= 90) {
               moveArmToAngle(rxInt);
@@ -154,7 +150,7 @@ void manualOperations() {
           case 'Z':
           case 'z': {
             // moveTo arm to int position; will do nothing if already in position
-            manualState = TOWER;
+            manualState = STEPPERS;
             
             if (rxInt <= 90) {
               moveZToPos(rxInt/90.0);
@@ -167,8 +163,48 @@ void manualOperations() {
 
           } break;
 
+          // Move arms to position (x,y,z)
+          case 'X':
+          case 'x': {
+            static int x = 0;
+            static int y = 0;
+            static int z = 0;
+
+            x = rxInt;
+            sendTransmission('M', 9);
+
+            while (!receiveTransmission()) {}
+
+            y = rxInt;
+            sendTransmission('M', 9);
+
+            while (!receiveTransmission()) {}
+
+            z = rxInt;
+
+            moveToPos(x,y,z);
+
+            manualState = STEPPERS;
+            sendTransmission('M', 10);
+          } break;
+
+          // Grab and load a block
+          case 'G':
+          case 'g': {
+            state = PRESSING;
+            sendTransmission('M', 11);
+          } break;
+
+          // Attach a block to the chassis
+          case 'P':
+          case 'p': {
+            state = ATTACHING;
+            sendTransmission('M', 12);
+          } break;
+
           default: {
             sendTransmission('X', 100);
+            sendTransmission('M', 1);
           } break;
         }
       }
@@ -182,7 +218,7 @@ void manualOperations() {
 
         manualState = WAITING;
 
-        sendTransmission('M', 2);
+        sendTransmission('M', 1);
 
         return;
       }
@@ -205,9 +241,7 @@ void manualOperations() {
       wheelDrive();
     } break;
 
-    case ARM: {} break;
-    case TURRET: {} break;
-    case TOWER: {
+    case STEPPERS: {
       if (finishedStepping()) {
         manualState = WAITING;
 

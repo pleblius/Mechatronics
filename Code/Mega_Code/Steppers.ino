@@ -1,36 +1,39 @@
 // Stepper Pins
-#define ADIR 33
-#define ZDIR 31
-#define TDIR 29
-#define ASTEP 27
-#define ZSTEP 25
-#define TSTEP 23
+#define ADIR 22
+#define ZDIR 30
+#define TDIR 34
+#define WDIR 26
+#define ASTEP 24
+#define ZSTEP 32
+#define TSTEP 36
+#define WSTEP 28
 
 // Stepper characteristics
 float stepSize = 1.8;                       
-float stepSizeRad = stepSize*pi/180.;       
+float stepSizeRad = stepSize*PI/180.;
 float stepsPerRev = 360./stepSize;
-float degPerRad = 180.0/pi;
-float radPerDeg = pi/180.0;
+float degPerRad = 180.0/PI;
+float radPerDeg = PI/180.0;
 
 // Step-to-degree ratios
-float turretRatio = 95.0;
-float armRatio = 50.0;
-float zRatio = 80.0;
+float turretRatio = 7.4;
+float armRatio = 3.5;
+float zRatio = 140.0;
 
 // Robot parameters (in)
-float zHeight;
+float zHeight = 8;
 float armLength = 9.5;
 float turretLength = 9.5;
 
 // Angular offsets in default position (degrees)
 float turretOffset = 45;
-float armOffset;
+float armOffset = 140;
 
 // Stepper constructurs - Motor mode (Driver = 2-pin), Step-pin, Dir-pin
 AccelStepper armMotor = AccelStepper(AccelStepper::DRIVER, ASTEP, ADIR);
 AccelStepper turretMotor = AccelStepper(AccelStepper::DRIVER, TSTEP, TDIR);  
 AccelStepper zMotor = AccelStepper(AccelStepper::DRIVER, ZSTEP, ZDIR);
+AccelStepper wristMotor = AccelStepper(AccelStepper::DRIVER, WSTEP, WDIR);
 
 /*  Initial setup for the three primary stepper motors. Sets their
  *  initial position, maximum speed, and acceleration.
@@ -39,14 +42,17 @@ void stepperSetup() {
   zMotor.setCurrentPosition(0);
   turretMotor.setCurrentPosition(0);
   armMotor.setCurrentPosition(0);
+  wristMotor.setCurrentPosition(0);
 
-  zMotor.setMaxSpeed(2000);
-  turretMotor.setMaxSpeed(4000);
-  armMotor.setMaxSpeed(4000);
+  zMotor.setMaxSpeed(250);
+  turretMotor.setMaxSpeed(250);
+  armMotor.setMaxSpeed(250);
+  wristMotor.setMaxSpeed(250);
 
-  zMotor.setAcceleration(1000);
-  turretMotor.setAcceleration(2000);
-  armMotor.setAcceleration(2000);
+  zMotor.setAcceleration(500);
+  turretMotor.setAcceleration(500);
+  armMotor.setAcceleration(500);
+  wristMotor.setAcceleration(500);
 }
 
 /*  Runs the stepper motors */
@@ -54,13 +60,15 @@ void runSteppers() {
   zMotor.run();
   turretMotor.run();
   armMotor.run();
+  wristMotor.run();
 }
 
 /*  Returns true if the steppers are done moving, false otherwise. */
 bool finishedStepping() {
   return zMotor.distanceToGo() == 0 &&
     armMotor.distanceToGo() == 0 &&
-    turretMotor.distanceToGo() == 0;
+    turretMotor.distanceToGo() == 0 &&
+    wristMotor.distanceToGo() == 0;
 }
 
 /*  Moves the turret/proximal arm to the desired angle (degrees).
@@ -75,6 +83,13 @@ void moveTurretToAngle(float angle) {
  */
 void moveArmToAngle(float angle) {
   armMotor.moveTo(armRatio*angle);
+}
+
+/*  Moves the wrist joint to the desired fixed angle (degrees).
+ *  Be aware of potential cable issues on excessive rotation.
+ */
+void moveWristToAngle(float angle) {
+  wristMotor.moveTo(stepSize*angle);
 }
 
 /*  Moves the vertical configuration to the desired position.
@@ -96,23 +111,19 @@ void moveToPos(float x, float y, float z) {
   float turretAngle;
   
   // Run inverse kinematics to get angles from position
-  zPos = getZPos(z);
-  armAngle = getArmAngle(x, y) + armOffset;
+  zPos = z;
+  armAngle = getArmAngle(x, y);
   turretAngle = getTurretAngle(x, y, armAngle) + turretOffset;
+  armAngle -= armOffset;
 
   // Move arms to respective angles
   moveZToPos(zPos);
   moveArmToAngle(armAngle);
   moveTurretToAngle(turretAngle);
 
-  // Adjust wrist to remain in neutral plain (aligned with chassis).
+  // Adjust wrist to remain in neutral plane (aligned with chassis).
   float wristAngle = armAngle + turretAngle;
-  // TODO - IMPLEMENT SERVO CONTROLS FOR WRIST
-}
-
-/*  Converts the z position from inches to a ratio of max height. */
-float getZPos(float z) {
-  return z/zHeight;
+  moveWristToAngle(wristAngle);
 }
 
 /*  Converts the position from cartesian coordinates (in inches) to arm angles theta1 and theta2.
@@ -129,8 +140,10 @@ float getArmAngle(float x, float y) {
   float num = x_2 + y_2 - l1_2 - l2_2;
   float den = 2*armLength*turretLength;
 
+  float retVal = acos(num/den)*degPerRad;
+
   // Return angle in degrees
-  return -acos(num/den)*degPerRad;
+  return retVal;
 }
 
 /*  Converts the position from cartesian coordinates (in inches) to a turret angle. Requires distal arm angle for
@@ -144,13 +157,18 @@ float getTurretAngle(float x, float y, float q2) {
   
   num = armLength*sin(q2_rad);
   den = turretLength + armLength*cos(q2_rad);
+  
+  float retVal = atan2(y, x)*degPerRad - atan2(num, den)*degPerRad;
 
-  return atan2(y, x)*degPerRad + atan2(num, den)*degPerRad;
+  return retVal;
 }
 
-/*  Moves arms to starting position. Used when RESET is called or competition is over.
+/*  Moves arms to starting position.
  *  WARNING: This method is open-loop. Starting position is based on position when Arduino was started.
  */
-void resetArms() {
-  moveToPos(0, 0, 0);
+void moveToHome() {
+  zMotor.moveTo(0);
+  armMotor.moveTo(0);
+  turretMotor.moveTo(0);
+  wristMotor.moveTo(0);
 }
