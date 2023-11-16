@@ -252,34 +252,40 @@ void parseTransmission() {
         case 0: {
           Serial.println(F("Beginning autonomous processing."));
           Serial.println(F("Add block to chassis: [blocktype][position]"));
-          Serial.println(F("Block type can be w/W, b/B, or f/F"));
+          Serial.println(F("Block type can be w/W, b/B, or f/F."));
+          Serial.println(F("Block position can be 0-19."));
 
           state = GETTING;
-
         } break;
 
         case 1: {
           Serial.println(F("Add additional blocks if desired:"));
 
           state = GETTING;
-
         } break;
+
+        case 9: {
+          Serial.println(F("Invalid Block Type! Valid types are w/W, b/B, and f/F."));
+          
+          state = GETTING;
+        } break;
+
+        case 19: {
+          Serial.println(F("Invalid Block Number! Valid locations are 0-19."));
+        }
       }
     } break;
 
     case 'S': {
       switch(rxInt) {
         case 0: {
-          Serial.println(F("Chassis set up. Awaiting START command: s/S 0"));
-
-          state = GETTING;
+          Serial.println(F("Beginning startup. Use r/R at any time to restart operations."));
         } break;
 
         case 1: {
           Serial.println(F("Robot beginning autonomous operations."));
 
           state = GETTING;
-
         } break;
       }
     } break;
@@ -287,16 +293,22 @@ void parseTransmission() {
     case 'R': {
       switch(rxInt) {
         case 0: {
-          Serial.println(F("RESTART command available: r/R 0"));
-
-          state = GETTING;
-
+          Serial.println(F("Beginning restart."));
         } break;
 
         case 1: {
-          Serial.println(F("RESTART initiated!"));
-
+          Serial.println(F("Restart finished."));
         } break;
+      }
+    } break;
+
+    case 'X': {
+      switch(rxInt) {
+        case 99: {
+          Serial.println(F("Unknown state reached."));
+
+          state = GETTING;
+        }
       }
     } break;
 

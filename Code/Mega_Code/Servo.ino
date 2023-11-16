@@ -6,7 +6,7 @@ void servoSetup() {
   rotatePresser(0);
 }
 
-/*  Rotates the block-catching servo to the provided angle.
+/*  Rotates the button-pressing servo to the provided angle.
  */
 void rotatePresser(int angle) {
   pressServo.write(angle);

@@ -11,15 +11,17 @@
 #define OFF false
 #define ON true
 bool debugMode;
+
 unsigned long timer = 0;
-unsigned long dt = 0;
-unsigned long dtTimer = 5000;
+float dt = 0.0;
+float dtTimer = 5.0;
 
 // Holds the robot state. Use MANUAL to manually input commands for testing.
 // All other states are for automatic control/competition.
 enum RobotState {
   MANUAL,
   STARTUP,
+  RESTARTING,
   STAGING, 
   SETUP, READY,
   PRESSING,
@@ -62,6 +64,11 @@ struct Point {
 
 Point nextPoint;
 
+// Traversal distance parameters
+float desForwardDistance = 3.0;
+float desReverseDistance = 13.0;
+float actualReverseDistance = 0.0;
+
 // Transmission variables
 char rxChar;
 int rxInt;
@@ -94,38 +101,78 @@ void setup() {
 
   // Set up color detector
   colorSetup();
-
-  // Set up arm movement locations
-  loadPoint1();
 }
 
 void loop() {
   // Loop timing
   unsigned static long lastUpdate;
-  dt = millis() - lastUpdate;
-  lastUpdate = millis();
-  timer += dt;
+  unsigned long curTime = millis();
+  dt = .001*(curTime - lastUpdate);
+  
 
   switch (state) {
-    case STARTUP: {
-      // Ping uno every five seconds until reponse is received.
-      if (timer > 5000) {
-        checkManualControl();
-        timer = 0;
+    case RESTARTING: {
+      runSteppers();
+
+      if (finishedStepping()) {
+        // Restart code 1 - finished restarting
+        sendTransmission('R', 1);
+
+        state = STARTUP;
       }
+    }
 
-    } break;
+    case STARTUP: {
+      // Start code 0 - begin startup
+      sendTransmission('S', 0);
+      // Block code 0 - prompt user
+      sendTransmission('B', 0);
 
-    case MANUAL: {
-      manualOperations();
+      state = SETUP;
     } break;
 
     case SETUP: {
-      runSteppers();
-      
-      if (finishedStepping()) {
-        state = KEYBOARD;
-        Serial.println("\nAwaiting command for autonomous operations.\n");
+      if (receiveTransmission()) {
+        if (restartTriggered()) {
+          restart();
+        }
+        // If invalid block location, exit block early
+        else if (rxInt > 20) {
+          // Start code 19 - invalid block number
+          sendTransmission('B', 19);
+        }
+        // If queue hasn't been built yet, check for valid-queue build command and initiate build
+        else if (!isQueueBuilt()) {
+          switch (rxChar) {
+            case 'W':
+            case 'w': {
+              buildQueue(WHEEL, rxInt);
+            } break;
+
+            case 'F':
+            case 'f': {
+              buildQueue(FAN, rxInt);
+            } break;
+
+            case 'B':
+            case 'b': {
+              buildQueue(BATTERY, rxInt);
+            } break;
+
+            default: {
+              // Error code 9 - invalid block type
+              sendTransmission('B', 9);
+            }
+          }
+        }
+        // If queue is already built, update queue with new attached block
+        else if (isQueueBuilt()) {
+          updateQueue(rxInt);
+        }
+        else {
+          // Error code 99 - unknown state
+          sendTransmission('X', 99);
+        }
       }
     } break;
 
@@ -229,8 +276,6 @@ void loop() {
 
           Serial.println("\nDone.\n");
           Serial.println("\nAwaiting command for autonomous operations.\n");
-          
-          loadPoint2();
 
         } else {
           nextPoint = getNextPoint();
@@ -287,4 +332,28 @@ void loop() {
 
 void moveToNextPoint() {
   moveToPos(nextPoint.x, nextPoint.y, nextPoint.z);
+}
+
+/*  Restarts all robot operations. */
+void restart() {
+  // Restart code 0 - initiating restart
+  sendTransmission('R', 0);
+
+  deactivateMagnet();
+
+  // Reset arm position
+  moveToHome();
+
+  // Reset wheel motors
+  resetMotors();
+
+  // Reset block queue
+  resetQueues();
+
+  state = RESTARTING;
+}
+
+/*  Checks if a restart command has been received. */
+bool restartTriggered() {
+  return (rxChar == 'R' || rxChar == 'r');
 }

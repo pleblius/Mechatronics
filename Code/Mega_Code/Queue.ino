@@ -1,13 +1,27 @@
+bool _queueBuilt;
+
+/*  Checks if the queue has been built. */
+bool isQueueBuilt() {
+  return _queueBuilt;
+}
+
 /*  Builds the priority queues for block placement based on 
  *  the location of the first randomly placed block. For consistency,
  *  if a restart is initiated, this block should be entered first
  *  to guarantee queue is built the same.
  */
 void buildQueue(Block block, int pos) {
+  // Exit if invalid placement location
+  if (pos > 20) {
+    return;
+  }
+
   int wheelChoice = buildWheelQueue(block, pos);
 
   buildFanQueue(block, pos, wheelChoice);
   buildBatteryQueue(block, pos);
+
+  _queueBuilt = true;
 }
 
 /*  Builds the wheel queue based on the original block type and position.
@@ -236,4 +250,23 @@ bool exhausted() {
   return wheelQueue.index >= wheelQueue.size &&
     fanQueue.index >= fanQueue.size &&
     batteryQueue.index >= batteryQueue.size;
+}
+
+/*  Resets all queues to default status. */
+void resetQueues() {
+  wheelQueue.index = 0;
+  fanQueue.index = 0;
+  batteryQueue.index = 0;
+
+  for (int i = 0; i < wheelQueue.size; i++) {
+    wheelQueue.queue[i] = 0;
+  }
+  for (int i = 0; i < fanQueue.size; i++) {
+    fanQueue.queue[i] = 0;
+  }
+  for (int i = 0; i < batteryQueue.size; i++) {
+    batteryQueue.queue[i] = 0;
+  }
+
+  _queueBuilt = false;
 }

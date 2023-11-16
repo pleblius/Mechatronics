@@ -9,7 +9,7 @@
 #define WSTEP 28
 
 // Stepper characteristics
-float stepSize = 1.8;                       
+float stepSize = 1.8;
 float stepSizeRad = stepSize*PI/180.;
 float stepsPerRev = 360./stepSize;
 float degPerRad = 180.0/PI;
@@ -44,15 +44,15 @@ void stepperSetup() {
   armMotor.setCurrentPosition(0);
   wristMotor.setCurrentPosition(0);
 
-  zMotor.setMaxSpeed(250);
-  turretMotor.setMaxSpeed(250);
-  armMotor.setMaxSpeed(250);
-  wristMotor.setMaxSpeed(250);
+  zMotor.setMaxSpeed(300);
+  turretMotor.setMaxSpeed(300);
+  armMotor.setMaxSpeed(300);
+  wristMotor.setMaxSpeed(25);
 
-  zMotor.setAcceleration(500);
-  turretMotor.setAcceleration(500);
-  armMotor.setAcceleration(500);
-  wristMotor.setAcceleration(500);
+  zMotor.setAcceleration(150);
+  turretMotor.setAcceleration(150);
+  armMotor.setAcceleration(150);
+  wristMotor.setAcceleration(10);
 }
 
 /*  Runs the stepper motors */
