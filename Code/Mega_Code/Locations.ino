@@ -1,7 +1,8 @@
 Point blockCatchUp = {6, 0, 4};
 Point blockCatchDown = {6, 0, 0};
 Point staging = {0, 2, 4};
-Point discardPoint = {19, 0, 0};
+Point discardUp = {6, 2, 4};
+Point discardDown = {6, 2, 0};
 Point homePoint = {4, 0, 4};
 Point chassisCenter = {0, 0, 1};
 
@@ -100,11 +101,6 @@ Point getBlockCatchDown() {
   return blockCatchDown;
 }
 
-/*  Returns the block discard position. */
-Point getDiscardPoint() {
-  return discardPoint;
-}
-
 /*  Returns true if the block is on the far side of the chassis. */
 bool isFarSide(int pos) {
   return 
@@ -160,10 +156,11 @@ bool isDiscard(int pos) {
 }
 
 void discardApproach() {
-  approachLength = 2;
+  approachLength = 3;
 
-  approachArray[0] = getStaging();
-  approachArray[1] = getDiscardPoint();
+  approachArray[0] = staging;
+  approachArray[1] = discardUp;
+  approachArray[2] = discardDown;
 }
 
 void topSideApproach(int pos) {

@@ -26,8 +26,9 @@ enum RobotState {
   ACQUIRING,
   READING,
   BACKING,
-  FRONTING,
-  DISCARDING,
+  FORWARD,
+  LOADING,
+  PLACING
 };
 RobotState state;
 
@@ -51,6 +52,7 @@ enum Block : char {
 
 // Global block stuff
 int blockPosition;
+bool discard;
 
 // Represents a point in three-dimensional cartesian space.
 // Has an x, y, and z coordinate.
@@ -140,28 +142,30 @@ void loop() {
         return;
       }
 
-      // Slowly approach the button
+      // Robot has closed the distance - set state to acquiring
       if (distance < desForwardDistance) {
-        wheelBrake();
-
-        driveStraight(1, 1);
-        state = ACQUIRING;
+        acquiringService();
         return;
-      } else if (distance < 5.0) {
+      }
+      // Robot is closing on button - slow approach
+      else if (distance < 5.0) {
         speed = (distance - desForwardDistance)*0.2;
-      } else {
+      }
+      // Normal line-follow
+      else {
         speed = 0.4;
       }
 
       forwardFollow(speed);
 
       restartCheck();
-
     } break;
 
     // Acquires a block by nudging the button and backing up slightly. Checks for restarts.
     case ACQUIRING: {
       static bool forwardFlag = true;
+
+      wheelDrive();
 
       if (atDestination()) {
         if (forwardFlag) {
@@ -191,8 +195,7 @@ void loop() {
       }
       // If reading fails reset to acquiring
       else {
-        driveStraight(1, 1);
-        state = ACQUIRING;
+        acquiringService();
         return;
       }
 
@@ -200,136 +203,57 @@ void loop() {
 
       // If block is a throwaway, discard it
       if (blockPosition == -1) {
-        discardApproach();
-        nextPoint = getNextPoint();
-        moveToNextPoint();
-        state = DISCARDING;
+        loadingService();
+        discard = true;
+      } else {
+        discard = false;
+        state = BACKING;
       }
       restartCheck();
     } break;
 
     // Reverse away from the block dispenser towards the vehicle chassis.
     case BACKING: {
-      static bool firstLeg = true;
-
-
+      backingOperations();
     } break;
 
-    case DISCARDING: {
-
+    case FORWARD: {
+      forwardOperations();
     } break;
 
-    case FRONTING: {
-
+    case PLACING: {
+      placingOperations();
     } break;
 
-    // case LOADING: {
-    //   runSteppers();
-    //   static bool up = true;
+    case LOADING: {
+      runSteppers();
+      static bool up = true;
 
-    //   if (finishedStepping() && up) {
-    //     nextPoint = getBlockCatchDown();
-    //     Serial.println("\nNext Point:");
-    //     Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
+      // If arm is above block-catch point, begin dropping arm
+      if (finishedStepping() && up) {
+        nextPoint = getBlockCatchDown();
 
-    //     moveToNextPoint();
-    //     up = false;
+        moveToNextPoint();
+        up = false;
 
-    //     activateMagnet();
-    //   } else if (finishedStepping() && !up) {
+        activateMagnet();
+      }
+      // If arm has collected block
+      else if (finishedStepping() && !up) {
         
-    //     up = true;
-    //     nextPoint = getBlockCatchUp();
+        up = true;
+        nextPoint = getBlockCatchUp();
 
-    //     Serial.println("\nNext Point:");
-    //     Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
+        moveToNextPoint();
 
-    //     moveToNextPoint();
+        placingService();
+      }
 
-    //     approachPosition(blockPosition);
-    //     Serial.println("\nAWAITING COMMAND TO PLACE BLOCK\n");
+      restartCheck();
+    } break;
 
-    //     state = KEYBOARD;
-    //   }
-    // } break;
-
-    // case ATTACHING: {
-    //   runSteppers();
-
-    //   if (finishedStepping()) {
-
-    //     if (finishedApproaching()) {
-
-    //       deactivateMagnet();
-    //       approachReturn();
-    //       state = RETURNING;
-
-    //     } else {
-    //       nextPoint = getNextPoint();
-    //       Serial.println("\nNext Point:");
-    //       Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
-
-    //       moveToNextPoint();
-    //     }
-    //   }
-
-    // } break;
-
-    // case RETURNING: {
-    //   if (finishedStepping()) {
-    //     if (finishedReturning()) {
-
-    //       // sendTransmission('M', 1);
-    //       state = KEYBOARD;
-
-    //       Serial.println("\nDone.\n");
-    //       Serial.println("\nAwaiting command for autonomous operations.\n");
-
-    //     } else {
-    //       nextPoint = getNextPoint();
-
-    //       Serial.println("\nNext Point:");
-    //       Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
-
-    //       moveToPos(nextPoint.x, nextPoint.y, nextPoint.z);
-    //     }
-    //   }
-
-    //   runSteppers();
-    // } break;
-
-    // case KEYBOARD: {
-    //   runSteppers();
-    //   char c;
-
-    //   if (Serial.available()) {
-    //     c = Serial.read();
-
-    //     switch (c) {
-    //       case 'G': {}
-    //       case 'g': {
-    //         state = STAGING;
-    //         nextPoint = getStaging();
-    //         moveToNextPoint();
-
-    //         Serial.println("\nGRABBING\n");
-
-    //       } break;
-
-    //       case 'A': {}
-    //       case 'a': {
-    //         state = ATTACHING;
-
-    //         Serial.println("\nATTACHING\n");
-    //       } break;
-
-    //       default: {}
-    //     }
-    //   }
-    // }
-    
     default: {
-
+      restartCheck();
     }
   }
 
@@ -349,4 +273,10 @@ void restartCheck() {
       restartService();
     }
   }
+}
+
+/*  Service to initiate block procurement. */
+void acquiringService() {
+  driveStraight(1, 1);
+  state = ACQUIRING;
 }

@@ -3,16 +3,11 @@ void restartService() {
   // Restart code 0 - initiating restart
   sendTransmission('R', 0);
 
-  deactivateMagnet();
-
   // Reset arm position
   moveToHome();
 
   // Brake
   wheelBrake();
-
-  // Reset wheel motors
-  resetMotors();
 
   // Reset block queue
   resetQueues();
@@ -25,6 +20,11 @@ void restartOperations() {
   runSteppers();
 
   if (finishedStepping()) {
+    // Reset wheel motors
+    resetMotors();
+
+    deactivateMagnet();
+    
     // Restart code 1 - finished restarting
     sendTransmission('R', 1);
 

@@ -30,6 +30,13 @@ float leftAngleOld;
 float leftAngleDes;
 float leftAngleFinal;
 
+float leftDist;
+float leftDistOld;
+float leftDistDes;
+float rightDist;
+float rightDistOld;
+float rightDistDes;
+
 float rightAngle;
 float rightAngleOld;
 float rightAngleDes;
@@ -51,13 +58,15 @@ int DC4Speed;
 float Kp;
 
 // Wheels
-float gearRatio = 70;
+float gearRatio = 100;
 long countsPerRevolution = 64*gearRatio;
 
 float revPerCount = 1.0/float(countsPerRevolution);
+float radPerCount = 2.0*PI*revPerCount;
 float degPerCount = 360.0*revPerCount;
 
 float wheelRadius = 4.2/2.54;
+float inPerCount = radPerCount*wheelRadius;
 float degPerIn = 180.0/wheelRadius/PI;
 float wheelWidth = 9.2;
 float bodyWheelRatio = wheelWidth*0.5/wheelRadius;
@@ -383,4 +392,27 @@ void resetMotors() {
   rightAngleOld = 0.0;
   rightAngleDes = 0.0;
   rightAngleFinal = 0.0;
+}
+
+/*  Begins tracking the total traveled distance. Used for non-PID control travel, like line-following. */
+void trackDistance(float dist) {
+  // Reset encoders
+  leftEncoder.write(0);
+  rightEncoder.write(0);
+
+  // Reset distance data
+  leftDist = 0.0;
+  rightDist = 0.0;
+}
+
+float getTrackDistance() {
+  leftCount = leftEncoder.read();
+  rightCount = rightEncoder.read();
+
+  // Convert count to inches
+  leftDist = leftCount*inPerCount;
+  rightDist = rightCount*inPerCount;
+
+  // Return average of both wheels
+  return 0.5*(leftDist + rightDist);
 }
