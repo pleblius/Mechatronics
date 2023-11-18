@@ -353,7 +353,7 @@ void constrainSpeeds() {
 
 /*  Checks if the wheels have reached their final calculated position. */
 bool atDestination() {
-  return (abs(leftAngleDes) >= abs(leftAngleFinal)) && (abs(rightAngleDes) > abs(rightAngleFinal));
+  return (abs(leftAngleDes) >= abs(leftAngleFinal)) && (abs(rightAngleDes) >= abs(rightAngleFinal));
 }
 
 /*  Resets motor control configuration for future controls. Erases all desired angles and speeds and set

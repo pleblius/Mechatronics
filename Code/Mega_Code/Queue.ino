@@ -127,7 +127,7 @@ void buildBatteryQueue(Block block, int pos) {
 
 /*  Sets the queue structure for one of the given block types to the queue information provided.
  *  If a block is already placed, swaps that to the front of the queue then advances the index.
- *  queue is the array to be used, size is the size of the array, and pos is the position being checked.
+ *  Queue is the array to be used, size is the size of the array, and pos is the position being checked.
  */
 void setQueue(PriorityQueue &queueStruct, int queue[], int size, int pos) {
   queueStruct.size = size;
@@ -150,20 +150,24 @@ void setQueue(PriorityQueue &queueStruct, int queue[], int size, int pos) {
  *  Swaps the new position to the front of the relevant queue and increases that queue's index by 1.
  */
 void updateQueue(int pos) {
-
+  // Check wheel queue
   if (contains(wheelQueue.queue, wheelQueue.size, pos)) {
     // Get pos index
     int posIndex = getIndex(wheelQueue.queue, wheelQueue.size, pos);
 
     swapTo(wheelQueue.queue, posIndex, 0);
     wheelQueue.index++;
-  } else if (contains(fanQueue.queue, fanQueue.size, pos)) {
+  }
+  // Check fan queue
+  else if (contains(fanQueue.queue, fanQueue.size, pos)) {
     // Get pos index
     int posIndex = getIndex(fanQueue.queue, fanQueue.size, pos);
 
     swapTo(fanQueue.queue, posIndex, 0);
     fanQueue.index++;
-  } else if (contains(batteryQueue.queue, batteryQueue.size, pos)) {
+  } 
+  // Check battery queue
+  else if (contains(batteryQueue.queue, batteryQueue.size, pos)) {
     // Get pos index
     int posIndex = getIndex(batteryQueue.queue, batteryQueue.size, pos);
 
@@ -173,8 +177,7 @@ void updateQueue(int pos) {
 }
 
 /*  Gets the array index corresponding to the given value. If the value is not contained in the array,
- *  returns -1.
- */
+ *  returns -1. */
 int getIndex(int queue[], int size, int value) {
   for (int i = 0; i < size; i++) {
     if (queue[i] == value) return i;
@@ -184,8 +187,8 @@ int getIndex(int queue[], int size, int value) {
 }
 
 /*  Moves the value at the given index 'start' to the desired index 'end' by swapping it
- *  one index at a time.
- *  WARNING: If start or end is not in the array, will cause buffer overflow.
+ *  one index at a time. Will shift all preceding values one index to the right.
+ *  WARNING: Does not check array bounds. If start or end is not within the array bounds, this method will cause a buffer overflow.
  */
 void swapTo(int queue[], int start, int end) {
   int sign;
@@ -197,8 +200,7 @@ void swapTo(int queue[], int start, int end) {
   }
 }
 
-/*  Swaps the elements at the given array indexes.
- */
+/*  Swaps the elements at the given array indexes. */
 void swap(int queue[], int left, int right) {
   int temp = queue[left];
 
@@ -206,8 +208,7 @@ void swap(int queue[], int left, int right) {
   queue[right] = temp;
 }
 
-/*  Checks if the value is contained within the given queue.
- */
+/*  Returns true if the int value is contained within the given array. */
 bool contains(int queue[], int size, int value) {
   for (int i = 0; i < size; i++) {
     if (queue[i] == value) return true;
@@ -217,7 +218,9 @@ bool contains(int queue[], int size, int value) {
 }
 
 /*  Gets the next position in queue for the given block type and advances the queue index.
- *  If there are no available positions in queue for the given blocktype, this method will return -1. */
+ *  If there are no available positions in queue for the given blocktype, this method will return -1.
+ *  If block type is invalid for this competition, this method will return -1.
+ */
 int getNextPosition(Block block) {
   switch (block) {
     case WHEEL: {
@@ -238,7 +241,7 @@ int getNextPosition(Block block) {
 /*  Gets the next position in the given priority queue and advances its index.
  *  If there are no available remaining positions, returns -1. */
 int getNextPosition(PriorityQueue &queueStruct) {
-  if (queueStruct.index == queueStruct.size) {
+  if (queueStruct.index >= queueStruct.size) {
     return -1;
   }
 

@@ -6,31 +6,6 @@ void serialSetup() {
   Serial3.begin(9600);
 }
 
-/*  Gets user input if manual control is necessary. If so, enables it.
- */
-void checkManualControl() {
-  // Send manual prompt
-  sendTransmission('M', 0);
-  
-  if (receiveTransmission()) {
-    Serial.println(rxChar);
-    Serial.println(rxInt);
-
-    if (rxChar == 'y' || rxChar == 'Y') {
-      state = MANUAL;
-
-      sendTransmission('M', 100);
-    } else if (rxChar == 'n' || rxChar == 'N') {
-      sendTransmission('B', 0);
-    }
-    else {
-      sendTransmission('X', 0);
-      delay(100);
-      sendTransmission('M', 0);
-    }
-  }
-}
-
 /*  Receives a packet transmission from the Arduino Mega.
  *  Packet should be of form:
  *  255

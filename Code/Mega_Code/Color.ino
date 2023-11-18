@@ -31,9 +31,9 @@ bool isBlue() {
 }
 
 /*  Prompts the color sensor for a reading and checks if that reading matches the
- *  calibrated definition of green.
- *  Returns true if the block is green, false otherwise. */
-bool isGreen() {
+ *  calibrated definition of yellow.
+ *  Returns true if the block is yellow, false otherwise. */
+bool isYellow() {
 
 }
 

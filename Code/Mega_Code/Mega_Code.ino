@@ -19,17 +19,15 @@ float dtTimer = 5.0;
 // Holds the robot state. Use MANUAL to manually input commands for testing.
 // All other states are for automatic control/competition.
 enum RobotState {
-  MANUAL,
   STARTUP,
   RESTARTING,
-  STAGING, 
-  SETUP, READY,
-  PRESSING,
+  SETUP,
+  EXITING,
+  ACQUIRING,
   READING,
-  LOADING,
-  ATTACHING,
-  RETURNING,
-  KEYBOARD
+  BACKING,
+  FRONTING,
+  DISCARDING,
 };
 RobotState state;
 
@@ -108,217 +106,227 @@ void loop() {
   unsigned static long lastUpdate;
   unsigned long curTime = millis();
   dt = .001*(curTime - lastUpdate);
-  
+
+  // Get IR sensor voltage every loop for filtering.
+  getFrontVoltage();
 
   switch (state) {
+    // Resets the robot to preprare for competition restart.
     case RESTARTING: {
-      runSteppers();
+      restartOperations();
+    } break;
 
-      if (finishedStepping()) {
-        // Restart code 1 - finished restarting
-        sendTransmission('R', 1);
-
-        state = STARTUP;
-      }
-    }
-
+    // Basic startup commands for when robot is turned on/reset
     case STARTUP: {
-      // Start code 0 - begin startup
-      sendTransmission('S', 0);
-      // Block code 0 - prompt user
+      // Block code 0 - prompt user for block input
       sendTransmission('B', 0);
 
-      state = SETUP;
+      setupService();
     } break;
 
+    // Block queue setup/update commands. Starts competition when proper command is received.
     case SETUP: {
-      if (receiveTransmission()) {
-        if (restartTriggered()) {
-          restart();
-        }
-        // If invalid block location, exit block early
-        else if (rxInt > 20) {
-          // Start code 19 - invalid block number
-          sendTransmission('B', 19);
-        }
-        // If queue hasn't been built yet, check for valid-queue build command and initiate build
-        else if (!isQueueBuilt()) {
-          switch (rxChar) {
-            case 'W':
-            case 'w': {
-              buildQueue(WHEEL, rxInt);
-            } break;
-
-            case 'F':
-            case 'f': {
-              buildQueue(FAN, rxInt);
-            } break;
-
-            case 'B':
-            case 'b': {
-              buildQueue(BATTERY, rxInt);
-            } break;
-
-            default: {
-              // Error code 9 - invalid block type
-              sendTransmission('B', 9);
-            }
-          }
-        }
-        // If queue is already built, update queue with new attached block
-        else if (isQueueBuilt()) {
-          updateQueue(rxInt);
-        }
-        else {
-          // Error code 99 - unknown state
-          sendTransmission('X', 99);
-        }
-      }
+      setupOperations();
     } break;
 
-    case STAGING: {
-      runSteppers();
+    // Exits the starting stall by following the black line. Checks for restart commands.
+    case EXITING: {
+      // Fraction of max speed
+      float speed;
+      float distance = getFrontDistance();
 
-      if (finishedStepping()) {
-        state = READY;
-        Serial.println("\nARM STAGED\n");
+      // Ignore intersections
+      if (atIntersectionFront()) {
+        return;
       }
-    }
-    
-    case READY: {
-      timer = 0;
-      state = PRESSING;
-      Serial.println("\nPRESSING\n");
-    } break;
 
-    case PRESSING: {
-      rotatePresser(30);
+      // Slowly approach the button
+      if (distance < desForwardDistance) {
+        wheelBrake();
 
-      // Wait 2 seconds, swap to reading - skip for PM
-      if (timer > 2000) {
-        timer = 0;
-        state = LOADING;
-        rotatePresser(0);
-
-        Serial.println("\nLOADING\n");
-
-        nextPoint = getBlockCatchUp();
-        Serial.println("\nNext Point:");
-        Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
-        moveToNextPoint();
+        driveStraight(1, 1);
+        state = ACQUIRING;
+        return;
+      } else if (distance < 5.0) {
+        speed = (distance - desForwardDistance)*0.2;
+      } else {
+        speed = 0.4;
       }
+
+      forwardFollow(speed);
+
+      restartCheck();
 
     } break;
 
+    // Acquires a block by nudging the button and backing up slightly. Checks for restarts.
+    case ACQUIRING: {
+      static bool forwardFlag = true;
+
+      if (atDestination()) {
+        if (forwardFlag) {
+          forwardFlag = false;
+          driveStraight(-1, 1);
+        } else {
+          forwardFlag = true;
+
+          wheelBrake();
+          state = READING;
+        }
+      }
+
+      restartCheck();
+    } break;
+
+    // Checks the block's color and gets the next placement location. Checks for restarts.
     case READING: {
-      // Read block color
-      // Get block position
+      Block block;
+
+      if (isRed()) {
+        block = WHEEL;
+      } else if (isBlue()) {
+        block = FAN;
+      } else if (isYellow()) {
+        block = BATTERY;
+      }
+      // If reading fails reset to acquiring
+      else {
+        driveStraight(1, 1);
+        state = ACQUIRING;
+        return;
+      }
+
+      blockPosition = getNextPosition(block);
+
+      // If block is a throwaway, discard it
+      if (blockPosition == -1) {
+        discardApproach();
+        nextPoint = getNextPoint();
+        moveToNextPoint();
+        state = DISCARDING;
+      }
+      restartCheck();
     } break;
 
-    case LOADING: {
-      runSteppers();
-      static bool up = true;
+    // Reverse away from the block dispenser towards the vehicle chassis.
+    case BACKING: {
+      static bool firstLeg = true;
 
-      if (finishedStepping() && up) {
-        nextPoint = getBlockCatchDown();
-        Serial.println("\nNext Point:");
-        Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
 
-        moveToNextPoint();
-        up = false;
+    } break;
 
-        activateMagnet();
-      } else if (finishedStepping() && !up) {
+    case DISCARDING: {
+
+    } break;
+
+    case FRONTING: {
+
+    } break;
+
+    // case LOADING: {
+    //   runSteppers();
+    //   static bool up = true;
+
+    //   if (finishedStepping() && up) {
+    //     nextPoint = getBlockCatchDown();
+    //     Serial.println("\nNext Point:");
+    //     Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
+
+    //     moveToNextPoint();
+    //     up = false;
+
+    //     activateMagnet();
+    //   } else if (finishedStepping() && !up) {
         
-        up = true;
-        nextPoint = getBlockCatchUp();
+    //     up = true;
+    //     nextPoint = getBlockCatchUp();
 
-        Serial.println("\nNext Point:");
-        Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
+    //     Serial.println("\nNext Point:");
+    //     Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
 
-        moveToNextPoint();
+    //     moveToNextPoint();
 
-        approachPosition(blockPosition);
-        Serial.println("\nAWAITING COMMAND TO PLACE BLOCK\n");
+    //     approachPosition(blockPosition);
+    //     Serial.println("\nAWAITING COMMAND TO PLACE BLOCK\n");
 
-        state = KEYBOARD;
-      }
-    } break;
+    //     state = KEYBOARD;
+    //   }
+    // } break;
 
-    case ATTACHING: {
-      runSteppers();
+    // case ATTACHING: {
+    //   runSteppers();
 
-      if (finishedStepping()) {
+    //   if (finishedStepping()) {
 
-        if (finishedApproaching()) {
+    //     if (finishedApproaching()) {
 
-          deactivateMagnet();
-          approachReturn();
-          state = RETURNING;
+    //       deactivateMagnet();
+    //       approachReturn();
+    //       state = RETURNING;
 
-        } else {
-          nextPoint = getNextPoint();
-          Serial.println("\nNext Point:");
-          Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
+    //     } else {
+    //       nextPoint = getNextPoint();
+    //       Serial.println("\nNext Point:");
+    //       Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
 
-          moveToNextPoint();
-        }
-      }
+    //       moveToNextPoint();
+    //     }
+    //   }
 
-    } break;
+    // } break;
 
-    case RETURNING: {
-      if (finishedStepping()) {
-        if (finishedReturning()) {
+    // case RETURNING: {
+    //   if (finishedStepping()) {
+    //     if (finishedReturning()) {
 
-          // sendTransmission('M', 1);
-          state = KEYBOARD;
+    //       // sendTransmission('M', 1);
+    //       state = KEYBOARD;
 
-          Serial.println("\nDone.\n");
-          Serial.println("\nAwaiting command for autonomous operations.\n");
+    //       Serial.println("\nDone.\n");
+    //       Serial.println("\nAwaiting command for autonomous operations.\n");
 
-        } else {
-          nextPoint = getNextPoint();
+    //     } else {
+    //       nextPoint = getNextPoint();
 
-          Serial.println("\nNext Point:");
-          Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
+    //       Serial.println("\nNext Point:");
+    //       Serial.print(nextPoint.x); Serial.print(" "); Serial.print(nextPoint.y); Serial.print(" "); Serial.println(nextPoint.z);
 
-          moveToPos(nextPoint.x, nextPoint.y, nextPoint.z);
-        }
-      }
+    //       moveToPos(nextPoint.x, nextPoint.y, nextPoint.z);
+    //     }
+    //   }
 
-      runSteppers();
-    } break;
+    //   runSteppers();
+    // } break;
 
-    case KEYBOARD: {
-      runSteppers();
-      char c;
+    // case KEYBOARD: {
+    //   runSteppers();
+    //   char c;
 
-      if (Serial.available()) {
-        c = Serial.read();
+    //   if (Serial.available()) {
+    //     c = Serial.read();
 
-        switch (c) {
-          case 'G': {}
-          case 'g': {
-            state = STAGING;
-            nextPoint = getStaging();
-            moveToNextPoint();
+    //     switch (c) {
+    //       case 'G': {}
+    //       case 'g': {
+    //         state = STAGING;
+    //         nextPoint = getStaging();
+    //         moveToNextPoint();
 
-            Serial.println("\nGRABBING\n");
+    //         Serial.println("\nGRABBING\n");
 
-          } break;
+    //       } break;
 
-          case 'A': {}
-          case 'a': {
-            state = ATTACHING;
+    //       case 'A': {}
+    //       case 'a': {
+    //         state = ATTACHING;
 
-            Serial.println("\nATTACHING\n");
-          } break;
+    //         Serial.println("\nATTACHING\n");
+    //       } break;
 
-          default: {}
-        }
-      }
-    }
+    //       default: {}
+    //     }
+    //   }
+    // }
     
     default: {
 
@@ -334,26 +342,11 @@ void moveToNextPoint() {
   moveToPos(nextPoint.x, nextPoint.y, nextPoint.z);
 }
 
-/*  Restarts all robot operations. */
-void restart() {
-  // Restart code 0 - initiating restart
-  sendTransmission('R', 0);
-
-  deactivateMagnet();
-
-  // Reset arm position
-  moveToHome();
-
-  // Reset wheel motors
-  resetMotors();
-
-  // Reset block queue
-  resetQueues();
-
-  state = RESTARTING;
-}
-
-/*  Checks if a restart command has been received. */
-bool restartTriggered() {
-  return (rxChar == 'R' || rxChar == 'r');
+/*  Simple restart command checker. */
+void restartCheck() {
+  if (receiveTransmission()) {
+    if (restartTriggered()) {
+      restartService();
+    }
+  }
 }
