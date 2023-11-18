@@ -1,13 +1,27 @@
+bool _queueBuilt;
+
+/*  Checks if the queue has been built. */
+bool isQueueBuilt() {
+  return _queueBuilt;
+}
+
 /*  Builds the priority queues for block placement based on 
  *  the location of the first randomly placed block. For consistency,
  *  if a restart is initiated, this block should be entered first
  *  to guarantee queue is built the same.
  */
 void buildQueue(Block block, int pos) {
+  // Exit if invalid placement location
+  if (pos > 20) {
+    return;
+  }
+
   int wheelChoice = buildWheelQueue(block, pos);
 
   buildFanQueue(block, pos, wheelChoice);
   buildBatteryQueue(block, pos);
+
+  _queueBuilt = true;
 }
 
 /*  Builds the wheel queue based on the original block type and position.
@@ -42,16 +56,6 @@ int buildWheelQueue(Block block, int pos) {
     // Default to first queue
     setQueue(wheelQueue, queue1, queueSize, pos);
     choice = 1;
-  }
-
-  if (debugMode) {
-    debugPrint("Wheel queue consists of values: ");
-
-    for (int i = 0; i < wheelQueue.size; i++) {
-      debugPrint(wheelQueue.queue[i] + 48);
-      debugPrint(' ');
-    }
-    debugPrint('\n');
   }
 
   return choice;
@@ -99,16 +103,6 @@ void buildFanQueue(Block block, int pos, int wheelChoice) {
   }
 
   setQueue(fanQueue, queueChoice, queueSize, pos);
-
-  if (debugMode) {
-    debugPrint("Fan queue consists of values: ");
-
-    for (int i = 0; i < fanQueue.size; i++) {
-      debugPrint(fanQueue.queue[i] + 48);
-      debugPrint(' ');
-    }
-    debugPrint('\n');
-  }
 }
 
 /*  Builds the battery queue out of all of the remaining positions not captured by
@@ -129,29 +123,15 @@ void buildBatteryQueue(Block block, int pos) {
   }
 
   setQueue(batteryQueue, queue, queueSize, pos);
-
-  if (debugMode) {
-    debugPrint("Battery queue consists of values: ");
-
-    for (int i = 0; i < batteryQueue.size; i++) {
-      debugPrint(batteryQueue.queue[i] + 48);
-      debugPrint(' ');
-    }
-    debugPrint('\n');
-  }
 }
 
 /*  Sets the queue structure for one of the given block types to the queue information provided.
  *  If a block is already placed, swaps that to the front of the queue then advances the index.
- *  queue is the array to be used, size is the size of the array, and pos is the position being checked.
+ *  Queue is the array to be used, size is the size of the array, and pos is the position being checked.
  */
-void setQueue(PriorityQueue queueStruct, int queue[], int size, int pos) {
+void setQueue(PriorityQueue &queueStruct, int queue[], int size, int pos) {
   queueStruct.size = size;
   queueStruct.index = 0;
-
-  for (int i = 0; i < size; i++) {
-    queueStruct.queue[i] = queue[i];
-  }
 
   if (contains(queue, size, pos)) {
     // Get pos index
@@ -160,70 +140,44 @@ void setQueue(PriorityQueue queueStruct, int queue[], int size, int pos) {
     swapTo(queue, posIndex, 0);
     queueStruct.index++;
   }
+
+  for (int i = 0; i < size; i++) {
+    queueStruct.queue[i] = queue[i];
+  }
 }
 
 /*  Updates the state of the queues with additional blocks that have been added, in case of a mid-competition restart.
  *  Swaps the new position to the front of the relevant queue and increases that queue's index by 1.
  */
-void updateQueue(Block block, int pos) {
-  struct PriorityQueue queueStruct;
-
-  switch (block) {
-    case WHEEL:
-      queueStruct = wheelQueue;
-      break;
-    case FAN:
-      queueStruct = fanQueue;
-      break;
-    default:
-      queueStruct = batteryQueue;
-      break;
-  }
-
-  if (contains(queueStruct.queue, queueStruct.size, pos)) {
+void updateQueue(int pos) {
+  // Check wheel queue
+  if (contains(wheelQueue.queue, wheelQueue.size, pos)) {
     // Get pos index
-    int posIndex = getIndex(queueStruct.queue, queueStruct.size, pos);
+    int posIndex = getIndex(wheelQueue.queue, wheelQueue.size, pos);
 
-    swapTo(queueStruct.queue, posIndex, 0);
-    queueStruct.index++;
+    swapTo(wheelQueue.queue, posIndex, 0);
+    wheelQueue.index++;
   }
+  // Check fan queue
+  else if (contains(fanQueue.queue, fanQueue.size, pos)) {
+    // Get pos index
+    int posIndex = getIndex(fanQueue.queue, fanQueue.size, pos);
 
-  if (debugMode) {
-    char* str;
+    swapTo(fanQueue.queue, posIndex, 0);
+    fanQueue.index++;
+  } 
+  // Check battery queue
+  else if (contains(batteryQueue.queue, batteryQueue.size, pos)) {
+    // Get pos index
+    int posIndex = getIndex(batteryQueue.queue, batteryQueue.size, pos);
 
-    switch (block) {
-      case WHEEL:
-        str = "wheel";
-        break;
-      case FAN:
-        str = "fan";
-        break;
-      default:
-        str = "battery";
-        break;
-    }
-
-    debugPrint("Updating ");
-    debugPrint(str);
-    debugPrint(" queue with a new block at position ");
-    debugPrintln(pos);
-
-    debugPrintln("New queue state is: ");
-
-    for (int i = 0; i < queueStruct.size; i++) {
-      debugPrint(queueStruct.queue[i] + 48);
-      debugPrint(" ");
-    }
-    debugPrint('\n');
-
-    debugPrint("With the new index at: ");
-    debugPrintln(queueStruct.index + 48);
-  }  
+    swapTo(batteryQueue.queue, posIndex, 0);
+    batteryQueue.index++;
+  }
 }
 
 /*  Gets the array index corresponding to the given value. If the value is not contained in the array,
- *  returns -1.
- */
+ *  returns -1. */
 int getIndex(int queue[], int size, int value) {
   for (int i = 0; i < size; i++) {
     if (queue[i] == value) return i;
@@ -233,8 +187,8 @@ int getIndex(int queue[], int size, int value) {
 }
 
 /*  Moves the value at the given index 'start' to the desired index 'end' by swapping it
- *  one index at a time.
- *  WARNING: If start or end is not in the array, will cause buffer overflow.
+ *  one index at a time. Will shift all preceding values one index to the right.
+ *  WARNING: Does not check array bounds. If start or end is not within the array bounds, this method will cause a buffer overflow.
  */
 void swapTo(int queue[], int start, int end) {
   int sign;
@@ -246,8 +200,7 @@ void swapTo(int queue[], int start, int end) {
   }
 }
 
-/*  Swaps the elements at the given array indexes.
- */
+/*  Swaps the elements at the given array indexes. */
 void swap(int queue[], int left, int right) {
   int temp = queue[left];
 
@@ -255,12 +208,68 @@ void swap(int queue[], int left, int right) {
   queue[right] = temp;
 }
 
-/*  Checks if the value is contained within the given queue.
- */
+/*  Returns true if the int value is contained within the given array. */
 bool contains(int queue[], int size, int value) {
   for (int i = 0; i < size; i++) {
     if (queue[i] == value) return true;
   }
 
   return false;
+}
+
+/*  Gets the next position in queue for the given block type and advances the queue index.
+ *  If there are no available positions in queue for the given blocktype, this method will return -1.
+ *  If block type is invalid for this competition, this method will return -1.
+ */
+int getNextPosition(Block block) {
+  switch (block) {
+    case WHEEL: {
+      return getNextPosition(wheelQueue);
+    } break;
+    case FAN: {
+      return getNextPosition(fanQueue);
+    } break;
+    case BATTERY: {
+      return getNextPosition(batteryQueue);
+    } break;
+    default: {
+      return -1;
+    }
+  }
+}
+
+/*  Gets the next position in the given priority queue and advances its index.
+ *  If there are no available remaining positions, returns -1. */
+int getNextPosition(PriorityQueue &queueStruct) {
+  if (queueStruct.index >= queueStruct.size) {
+    return -1;
+  }
+
+  return queueStruct.queue[queueStruct.index++];
+}
+
+/*  Returns true if all block placement queues have been exhausted. */
+bool exhausted() {
+  return wheelQueue.index >= wheelQueue.size &&
+    fanQueue.index >= fanQueue.size &&
+    batteryQueue.index >= batteryQueue.size;
+}
+
+/*  Resets all queues to default status. */
+void resetQueues() {
+  wheelQueue.index = 0;
+  fanQueue.index = 0;
+  batteryQueue.index = 0;
+
+  for (int i = 0; i < wheelQueue.size; i++) {
+    wheelQueue.queue[i] = 0;
+  }
+  for (int i = 0; i < fanQueue.size; i++) {
+    fanQueue.queue[i] = 0;
+  }
+  for (int i = 0; i < batteryQueue.size; i++) {
+    batteryQueue.queue[i] = 0;
+  }
+
+  _queueBuilt = false;
 }

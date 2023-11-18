@@ -4,34 +4,6 @@
 void serialSetup() {
   Serial.begin(9600);
   Serial3.begin(9600);
-  delay(1000);
-
-  // Send manual prompt
-  sendTransmission('M', 0);
-}
-
-/*  Gets user input if manual control is necessary. If so, enables it.
- *  WARNING: This code blocks.
- */
-void checkManualControl() {
-  if (receiveTransmission()) {
-    Serial.println(rxChar);
-    Serial.println(rxInt);
-
-    if (rxChar == 'y' || rxChar == 'Y') {
-      state = MANUAL;
-      manualState = WAITING;
-
-      sendTransmission('M', 100);
-    } else if (rxChar == 'n' || rxChar == 'N') {
-      sendTransmission('B', 0);
-    }
-    else {
-      sendTransmission('X', 0);
-      delay(100);
-      sendTransmission('M', 0);
-    }
-  }
 }
 
 /*  Receives a packet transmission from the Arduino Mega.
@@ -76,7 +48,7 @@ void sendTransmission(char txChar, int txInt) {
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(char* str) {
-  if (goodToPrint) {
+  if (timer > dtTimer) {
     Serial.println(str);
   }
 }
@@ -85,7 +57,7 @@ void debugPrintln(char* str) {
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(char* str) {
-  if (goodToPrint) {
+  if (timer > dtTimer) {
     Serial.print(str);
   }
 }
@@ -94,7 +66,7 @@ void debugPrint(char* str) {
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(float f) {
-  if (goodToPrint) {  
+  if (timer > dtTimer) {
     Serial.println(f);
   }
 }
@@ -102,8 +74,8 @@ void debugPrintln(float f) {
 /*  Sends the given float to the serial comms device, for printout to the screen
  *  for debugging. Does not terminate the line.
  */
-void debugPrint(float f) {
-  if (goodToPrint) {  
+void debugPrint(float f) {  
+  if (timer > dtTimer) {
     Serial.print(f);
   }
 }
@@ -112,7 +84,7 @@ void debugPrint(float f) {
  *  for debugging. Ends with a newline character.
  */
 void debugPrintln(int f) {
-  if (goodToPrint) {
+  if (timer > dtTimer) {
     Serial.println(f);
   }
 }
@@ -121,7 +93,49 @@ void debugPrintln(int f) {
  *  for debugging. Does not terminate the line.
  */
 void debugPrint(int f) {
-  if (goodToPrint) {
-    Serial.print(f);
+  if (timer > dtTimer) {
+    Serial.println(f);
   }
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Ends with a newline character.
+ */
+void debugPrintln(long f) {
+  if (timer > dtTimer) {
+    Serial.println(f);
+  }
+}
+
+/*  Sends the given int to the serial comms device, for printout to the screen
+ *  for debugging. Does not terminate the line.
+ */
+void debugPrint(long f) {
+  if (timer > dtTimer) {
+    Serial.println(f);
+  }
+}
+
+void forcedPrintln(char* str) {
+  Serial.println(str);
+}
+
+void forcedPrint(char* str) {
+  Serial.print(str);
+}
+
+void forcedPrintln(int f) {
+  Serial.println(f);
+}
+
+void forcedPrint(int f) {
+  Serial.print(f);
+}
+
+void forcedPrintln(float f) {
+  Serial.println(f);
+}
+
+void forcedPrint(float f) {
+  Serial.print(f);
 }

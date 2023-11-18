@@ -15,9 +15,26 @@ void distanceSetup() {
   pinMode(DSIN, INPUT);
 }
 
-/* Gets the current distance reading for the front-facing IR sensor
- */
+/*  Gets the current distance reading in inches for the front-facing IR sensor. */
 float getFrontDistance() {
+  float voltage = getFrontVoltage();
+
+  // Convert voltage to distance measurement
+  float distance = pow(voltage*a_inv, b_inv);
+
+  if (debugMode) {
+    debugPrintln("Current Distance:");
+    debugPrintln(distance);
+    debugPrintln("");
+  }
+
+  return distance;
+}
+
+/*  Gets the voltage reading from the front-facing IR sensor.
+ *  Uses IIR filter to reduce reading noise.
+ *  NOTE: Call this every loop to ensure good data filtering. */
+float getFrontVoltage() {
   static float prevVoltage = 0.0;
   int reading;
   float voltage;
@@ -33,16 +50,7 @@ float getFrontDistance() {
   // Cache voltage
   prevVoltage = voltage;
 
-  // Convert voltage to distance measurement
-  distance = pow(voltage*a_inv, b_inv);
-
-  if (debugMode) {
-    debugPrintln("Current Distance:");
-    debugPrintln(distance);
-    debugPrintln("");
-  }
-
-  return distance;
+  return voltage;
 }
 
 /* Returns an IIR filtered output based on the previous and current floating-point readings
