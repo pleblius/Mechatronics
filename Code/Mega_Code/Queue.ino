@@ -34,8 +34,6 @@ int buildWheelQueue(Block block, int pos) {
   int queueSize = 6;
   int choice;
 
-  Serial.println(block);
-
   // Check if the random block is on the side.
   // If it is and it's a wheel, use that side. Otherwise, use the other side.
   if (contains(queue1, queueSize, pos)) {

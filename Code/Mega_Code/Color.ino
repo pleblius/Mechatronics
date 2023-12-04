@@ -82,13 +82,15 @@ void getColor() {
   digitalWrite(S3,LOW);
   // Reading the output frequency
   redFreq = pulseIn(sensorOut, LOW);
+  delay(5);
 
   // Setting Green filtered photodiodes to be read
   digitalWrite(S2,HIGH);
   digitalWrite(S3,HIGH);
   // Reading the output frequency
   greenFreq = pulseIn(sensorOut, LOW);
-
+  delay(5);
+  
   // Setting Blue filtered photodiodes to be read
   digitalWrite(S2,LOW);
   digitalWrite(S3,HIGH);

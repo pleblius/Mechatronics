@@ -51,7 +51,6 @@ void setupOperations() {
 /*  Uses the cached rxChar and rxInt to create a new queue, with the random starting block
  *  determined by rxChar at position rxInt. */
 void setupQueue() {
-  Serial.println(rxChar);
   switch (rxChar) {
     case 'W':
     case 'w': {

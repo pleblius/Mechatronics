@@ -99,8 +99,6 @@ void PIDDrive() {
   // Encoder sensing
   leftDist = leftEncoder.read()*2*PI*revPerCount*wheelRadius;
   rightDist = rightEncoder.read()*2*PI*revPerCount*wheelRadius;
-  Serial.println(leftDist);
-  Serial.println(rightDist);
 
   // Compute Errors
 

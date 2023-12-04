@@ -65,7 +65,7 @@ struct Point {
 Point nextPoint;
 
 // Traversal distance parameters
-float desForwardDistance = 4.0;
+float desForwardDistance = 2;
 float desReverseDistance = 4.0;
 
 // Transmission variables
@@ -135,27 +135,22 @@ void loop() {
       float speed;
       float distance = getFrontDistance();
 
-      Serial.println(distance);
-
       if (!finishedStepping()) {
         runSteppers();
       }
 
       // Ignore intersections
       if (atIntersectionFront()) {
-        return;
-      }
 
-      Serial.println(distance);
-      
+      }
       // Robot has closed the distance - set state to acquiring
-      if (distance < desForwardDistance) {
+      else if (distance < desForwardDistance) {
         Serial.println("Distance Reached.");
         acquiringService();
       }
       // Normal line-follow
       else {
-        speed = 0.4;
+        speed = 0.6;
         forwardFollow(speed);
       }
 
@@ -171,18 +166,18 @@ void loop() {
       if (atDestination()) {
         if (forwardFlag) {
           wheelBrake();
-          delay(50);
+          delay(100);
           Serial.println("Forward Distance reached.");
           // Backup
           forwardFlag = false;
-          driveStraight(-2, 3);
+          driveStraight(-2, 5);
         } else {
           Serial.println("Backward Distance reached.");
           // Done backing up
           forwardFlag = true;
 
           wheelBrake();
-          delay(50);
+          delay(100);
           state = READING;
           timer = 0.0;
         }
@@ -194,33 +189,35 @@ void loop() {
     // Checks the block's color and gets the next placement location. Checks for restarts.
     case READING: {
       timer += dt;
-      if (timer < dtTimer) return;
+      if (timer > dtTimer) {
 
-      getColor();
-      
-      Block block;
-      if (isRed()) {
-        block = WHEEL;
-      } else if (isBlue()) {
-        block = FAN;
-      } else if (isYellow()) {
-        block = BATTERY;
-      }
-      // If reading fails reset
-      else {
-        acquiringService();
-        return;
-      }
-      
-      blockPosition = getNextPosition(block);
+        getColor();
+        
+        Block block;
+        if (isRed()) {
+          block = WHEEL;
+        } else if (isBlue()) {
+          block = FAN;
+        } else if (isYellow()) {
+          Serial.println("yellow block.");
+          block = BATTERY;
+        }
+        // If reading fails reset
+        else {
+          acquiringService();
+          return;
+        }
+        
+        blockPosition = getNextPosition(block);
 
-      // If block is a throwaway, discard it
-      if (blockPosition == -1) {
-        loadingService();
-        discard = true;
-      } else {
-        discard = false;
-        state = BACKING;
+        // If block is a throwaway, discard it
+        if (blockPosition == -1) {
+          loadingService();
+          discard = true;
+        } else {
+          discard = false;
+          state = BACKING;
+        }
       }
       restartCheck();
     } break;
@@ -286,7 +283,6 @@ void restartCheck() {
 
 /*  Service to initiate block procurement. */
 void acquiringService() {
-  driveStraight(2, 2);
-  Serial.println("PID movement.");
+  driveStraight(2, 5);
   state = ACQUIRING;
 }

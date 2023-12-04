@@ -189,7 +189,7 @@ bool atIntersectionFront() {
     }
   }
 
-  if (triggerCount > 3) {
+  if (triggerCount > 2) {
     return true;
   }
 
@@ -209,7 +209,7 @@ bool atIntersectionRear() {
     }
   }
 
-  if (triggerCount > lineThickness) {
+  if (triggerCount > 3) {
     return true;
   }
 
