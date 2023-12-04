@@ -1,4 +1,4 @@
-bool _queueBuilt;
+bool _queueBuilt = false;
 
 /*  Checks if the queue has been built. */
 bool isQueueBuilt() {
@@ -33,6 +33,8 @@ int buildWheelQueue(Block block, int pos) {
   int queue2[] = {5, 9, 4, 10, 3, 11};
   int queueSize = 6;
   int choice;
+
+  Serial.println(block);
 
   // Check if the random block is on the side.
   // If it is and it's a wheel, use that side. Otherwise, use the other side.
@@ -272,4 +274,19 @@ void resetQueues() {
   }
 
   _queueBuilt = false;
+}
+
+void printQueues() {
+  Serial.println("Wheel:");
+  for (int i = wheelQueue.index; i < wheelQueue.size; i++) {
+    Serial.println(wheelQueue.queue[i]);
+  }
+    Serial.println("Fan:");
+  for (int i = fanQueue.index; i < fanQueue.size; i++) {
+    Serial.println(fanQueue.queue[i]);
+  }
+    Serial.println("Battery:");
+  for (int i = batteryQueue.index; i < batteryQueue.size; i++) {
+    Serial.println(batteryQueue.queue[i]);
+  }
 }

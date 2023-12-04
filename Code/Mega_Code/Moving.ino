@@ -3,10 +3,14 @@ void backingOperations() {
   static bool firstLeg = true;
   static bool turning = false;
   float speed = 0.4;
+
+  if (!finishedStepping()) {
+    runSteppers();
+  }
   
   // If turning, use PID control
   if (turning) {
-    wheelDrive();
+    PIDDrive();
 
     if (atDestination()) {
       turning = false;
@@ -25,28 +29,17 @@ void backingOperations() {
   }
   // If on second leg, line follow for desired distance
   else {
-    // Once front line-follower triggers on the intersection, reset distance tracking
-    if (atIntersectionFront()) {
-      trackDistance(desReverseDistance);
-    }
-    // Travel for set distance
-    else {
-      // If distance is reached, brake and begin block placement
-      if (getTrackDistance() > desReverseDistance) {
-        wheelBrake();
-        loadingService();
-      }
-      // Line follow
-      else {
-        reverseFollow(speed);
-      }
+    if (getRearDistance() < desReverseDistance) {
+      wheelBrake();
+      loadingService();
+      firstLeg = true;
+    } else {
+      reverseFollow(speed);
     }
   }
 
   restartCheck();
 }
-
-
 
 /*  Robot operation while traveling in reverse from block dispenser to vehicle chassis. */
 void forwardOperations() {
@@ -54,10 +47,14 @@ void forwardOperations() {
   static bool turning = false;
   float speed = 0.4;
   float distance = getFrontDistance();
+
+  if (!finishedStepping()) {
+    runSteppers();
+  }
   
   // If turning, use PID control
   if (turning) {
-    wheelDrive();
+    PIDDrive();
 
     if (atDestination()) {
       turning = false;
@@ -69,7 +66,7 @@ void forwardOperations() {
     // When intersection is reached, turn to follow branch
     if (atIntersectionFront()) {
       turning = true;
-      turn(2, 3);
+      turn(-2, 3);
     } else {
       forwardFollow(speed);
     }

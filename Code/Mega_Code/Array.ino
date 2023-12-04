@@ -1,28 +1,28 @@
 // PINS
-#define RL1 34
-#define RL2 46
-#define RL3 32
-#define RL4 44
-#define RL5 30
-#define RL6 42
-#define RL7 28
-#define RL8 40
-#define RL9 26
-#define RL10 38
-#define RL11 24
-#define RL12 36
-#define RL13 22
-#define RIN 48
+#define RL1 47
+#define RL2 45
+#define RL3 43
+#define RL4 41
+#define RL5 39
+#define RL6 37
+#define RL7 35
+#define RL8 33
+#define RL9 31
+#define RL10 29
+#define RL11 27
+#define RL12 25
+#define RL13 23
+#define RIN 49
 
-#define FL1 A1
-#define FL2 A2
-#define FL3 A3
-#define FL4 A4
-#define FL5 A5
-#define FL6 A6
-#define FL7 A7
+#define FL1 A15
+#define FL2 A14
+#define FL3 A13
+#define FL4 A12
+#define FL5 A11
+#define FL6 A10
+#define FL7 A9
 #define FL8 A8
-#define FIN 53
+#define FIN A7
 
 // Sensors
 QTRSensors front, rear;
@@ -32,11 +32,11 @@ uint16_t rearValues[REARCOUNT];
 uint16_t frontValues[FRONTCOUNT];
 
 // Calibration Data
-uint16_t rearBaseValues[REARCOUNT]{316, 228, 228, 228, 228, 228, 228, 228, 228, 228, 228, 228, 228};
-uint16_t rearMaxValues[REARCOUNT]{1632, 1228, 1384, 1460, 1220, 1452, 1628, 1628, 1712, 1544, 1624, 1456, 1456};
+uint16_t rearBaseValues[REARCOUNT]{220, 220, 220, 220, 220, 220, 220, 220, 220, 220, 220, 220, 220};
+uint16_t rearMaxValues[REARCOUNT]{2140, 1484, 1564, 1556, 1404, 1564, 1804, 1804, 1968, 1644, 1564, 1484, 1804};
 
-uint16_t frontBaseValues[FRONTCOUNT]{316, 228, 228, 228, 228, 228, 228, 228};
-uint16_t frontMaxValues[FRONTCOUNT]{1632, 1228, 1384, 1460, 1220, 1452, 1628, 1628};
+uint16_t frontBaseValues[FRONTCOUNT]{140, 140, 92, 140, 92, 140, 92, 140};
+uint16_t frontMaxValues[FRONTCOUNT]{2340, 2084, 1416, 1936, 1700, 2088, 1748, 1888};
 
 // Proportionality Constants
 float RKp, FKp;
@@ -56,8 +56,8 @@ void arraySetup() {
   front.setSensorPins((const uint8_t[]){FL1, FL2, FL3, FL4, FL5, FL6, FL7, FL8}, FRONTCOUNT);
   front.setEmitterPin(FIN);
 
-  RKp = 0.05;
-  FKp = 0.05;
+  RKp = 0.12;
+  FKp = 0.12;
 }
 
 /*  Sets the forward wheel speed based on the provided desired speed and the
@@ -69,16 +69,8 @@ void forwardFollow(float avgSpd) {
 
   // Adjust wheel speeds based on error-term
   float error = getForwardError();
-  leftWheelSpeed += FKp*error;
-  rightWheelSpeed -= FKp*error;
-
-  if (debugMode) {
-    debugPrintln("Adjusted Wheel Speeds:");
-    debugPrint(leftWheelSpeed);
-    debugPrint(" ");
-    debugPrint(rightWheelSpeed);
-    debugPrintln(" ");
-  }
+  leftWheelSpeed -= FKp*error;
+  rightWheelSpeed += FKp*error;
 
   wheelDriveSpeed(leftWheelSpeed, rightWheelSpeed);
 }
@@ -92,17 +84,9 @@ void reverseFollow(float avgSpd) {
 
   // Adjust wheel speeds based on error-term
   float error = getReverseError();
-  leftWheelSpeed -= RKp*error;
-  rightWheelSpeed += RKp*error;
-
-  if (debugMode) {
-    debugPrintln("Adjusted Wheel Speeds:");
-    debugPrint(leftWheelSpeed);
-    debugPrint(" ");
-    debugPrint(rightWheelSpeed);
-    debugPrintln(" ");
-  }
-
+  leftWheelSpeed += RKp*error;
+  rightWheelSpeed -= RKp*error;
+  
   wheelDriveSpeed(leftWheelSpeed, rightWheelSpeed);
 }
 
@@ -113,10 +97,6 @@ float getForwardError() {
   float d0 = 4;
 
   front.read(frontValues);
-
-  if (debugMode) {
-    debugPrintln("Sensor Values:");
-  }
 
   mapFrontReadings();
 
@@ -135,10 +115,6 @@ float getReverseError() {
 
   rear.read(rearValues);
 
-  if (debugMode) {
-    debugPrintln("Sensor Values:");
-  }
-
   mapRearReadings();
 
   // Calculate which sensor the line is centered beneath
@@ -153,19 +129,9 @@ void mapFrontReadings() {
 
   // Constrain values to min and max of range
   for (int i = 0; i < FRONTCOUNT; i++) {
-    if (frontValues[i] < frontBaseValues[i]) {
-      frontValues[i] = frontBaseValues[i];
-    } else if (frontValues[i] > frontMaxValues[i]) {
-      frontValues[i] = frontMaxValues[i];
-    }
+    frontValues[i] = constrain(frontValues[i], frontBaseValues[i], frontMaxValues[i]);
 
     frontValues[i] = map(frontValues[i], frontBaseValues[i], frontMaxValues[i], 0, 2550);
-
-    if (debugMode) {
-      int val = frontValues[i];
-      debugPrint(val);
-      debugPrint(" ");
-    }
   }
 }
 
@@ -174,19 +140,9 @@ void mapRearReadings() {
 
   // Constrain values to min and max of range
   for (int i = 0; i < REARCOUNT; i++) {
-    if (rearValues[i] < rearBaseValues[i]) {
-      rearValues[i] = rearBaseValues[i];
-    } else if (rearValues[i] > rearMaxValues[i]) {
-      rearValues[i] = rearMaxValues[i];
-    }
+    rearValues[i] = constrain(rearValues[i], rearBaseValues[i], rearMaxValues[i]);
 
     rearValues[i] = map(rearValues[i], rearBaseValues[i], rearMaxValues[i], 0, 2550);
-
-    if (debugMode) {
-      int val = rearValues[i];
-      debugPrint(val);
-      debugPrint(" ");
-    }
   }
 }
 
@@ -202,12 +158,6 @@ float getFrontLineLocation() {
 
   float location = (float)weightedSum / (float)readingSum;
 
-  if (debugMode) {
-    debugPrintln("Current line location:");
-    debugPrintln(location);
-    debugPrintln("");
-  }
-
   return location;
 }
 
@@ -222,12 +172,6 @@ float getRearLineLocation() {
   }
 
   float location = (float)weightedSum / (float)readingSum;
-
-  if (debugMode) {
-    debugPrintln("Current line location:");
-    debugPrintln(location);
-    debugPrintln("");
-  }
 
   return location;
 }
@@ -245,7 +189,7 @@ bool atIntersectionFront() {
     }
   }
 
-  if (triggerCount > lineThickness) {
+  if (triggerCount > 3) {
     return true;
   }
 

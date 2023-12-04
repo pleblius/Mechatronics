@@ -29,7 +29,7 @@ void restartOperations() {
     sendTransmission('R', 1);
 
     // Start code 0 - begin startup
-    sendTransmission('S', 0);
+    sendTransmission('S', 5);
 
     state = STARTUP;
   }

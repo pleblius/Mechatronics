@@ -1,10 +1,10 @@
-Point blockCatchUp = {6, 0, 4};
-Point blockCatchDown = {6, 0, 0};
-Point staging = {0, 2, 4};
-Point discardUp = {6, 2, 4};
-Point discardDown = {6, 2, 0};
-Point homePoint = {4, 0, 4};
-Point chassisCenter = {0, 0, 1};
+Point blockCatchUp = {2, -6, 4.5};
+Point blockCatchDown = {2, -6, 1.5};
+Point staging = {2, 2, 4.5};
+Point discardUp = {10, -6, 4.5};
+Point discardDown = {10, -6, 0};
+Point homePoint = {4, -4, 4.5};
+Point chassisCenter = {3.5, 0, 0.25};
 
 int approachLength = 0;
 Point approachArray[10];
@@ -23,7 +23,7 @@ void generateApproach(int pos) {
     return;
   }
 
-  chassisCenter.y = 24.0 - actualReverseDistance - 8.0;
+  chassisCenter.y = getRearDistance() + 3.0 + 2.0;
 
   approachArray[0] = getStaging();
 
@@ -43,7 +43,7 @@ void generateApproach(int pos) {
 /*  Sets the approach array to the beginning of the array and generates
  *  the approach points based on the position. 
  */
-void approachPosition(int position) {
+void approachPosition() {
   approachIndex = 0;
   approachDir = 1;
 }
@@ -72,6 +72,9 @@ Point getNextPoint() {
   return returnPoint;
 }
 
+Point getHomePoint() {
+  return homePoint;
+}
 /*  Checks if the arms have completed the approach array (and the block is attached to the chassis). 
  *  Returns true if the approach array has been exhausted, false otherwise.
  */
@@ -158,7 +161,7 @@ bool isDiscard(int pos) {
 void discardApproach() {
   approachLength = 3;
 
-  approachArray[0] = staging;
+  approachArray[0] = homePoint;
   approachArray[1] = discardUp;
   approachArray[2] = discardDown;
 }
@@ -173,25 +176,55 @@ void topSideApproach(int pos) {
   // Get lateral placement position and move to side
   if (isLeftSide(pos)) {
     endX = chassisCenter.x + 3.0;
-
-    approachArray[1] = {endX + 3.0, staging.y, staging.z};
-    approachArray[2] = {endX + 3.0, chassisCenter.y, staging.z};
-
   } else if (isRightSide(pos)) {
     endX = chassisCenter.x - 3.0;
-
-    approachArray[1] = {endX - 3.0, staging.y, staging.z};
-    approachArray[2] = {endX - 3.0, chassisCenter.y, staging.z};
   } else {
     endX = chassisCenter.x;
   }
-
-  // Get vertical placement position
   if (isFarSide(pos)) {
     endY = chassisCenter.y + 3.0;
   } else if (isCloseSide(pos)) {
     endY = chassisCenter.y - 3.0;
+  } else {
+    endY = chassisCenter.y;
   }
+
+  if (isLeftSide(pos)) {
+    approachArray[1] = {endX + 3.0, staging.y, staging.z};
+    approachArray[2] = {endX + 3.0, endY, staging.z};
+    approachArray[3] = {endX + 1.0, endY, staging.z};
+    approachArray[4] = {endX, endY, staging.z};
+    approachArray[5] = {endX, endY, endZ};
+  }
+  else if (isRightSide(pos)) {
+    approachArray[1] = {endX - 3.0, staging.y, staging.z};
+    approachArray[2] = {endX - 3.0, endY, staging.z};
+    approachArray[3] = {endX - 1.0, endY, staging.z};
+    approachArray[4] = {endX, endY, staging.z};
+    approachArray[5] = {endX, endY, endZ};
+  }
+  else if (isFarSide(pos)) {
+    // Takes a wide swing around the right side of the chassis
+    approachArray[1] = {chassisCenter.x - 6.0, staging.y, staging.z};
+    approachArray[2] = {chassisCenter.x - 6.0, endY + 3.0, staging.z};
+
+    // Settles into its desired x position before dropping into desired z position
+    approachArray[3] = {endX, endY + 1.0, staging.z};
+    approachArray[4] = {endX, endY, endZ + 1.0};
+    approachArray[5] = {endX, endY, endZ};
+  }
+  else if (isCloseSide(pos)) {
+    // Settles into close staging position
+    approachArray[1] = {chassisCenter.x, staging.y, staging.z};
+    approachArray[2] = {endX, staging.y, staging.z};
+
+    // Walks into final placement position
+    approachArray[3] = {endX, endY - 1.0, staging.z};
+    approachArray[4] = {endX, endY, staging.z};
+    approachArray[5] = {endX, endY, endZ};
+  }
+
+  approachLength = 6;
 }
 
 void farSideApproach(int pos) {
@@ -204,9 +237,9 @@ void farSideApproach(int pos) {
   // Wall is 4" from center + 1" for block size
   endY = chassisCenter.y + 4.0 + 1.0;
 
-  if (isLeftSide(pos)) {
+  if (pos == 3) {
     endX = chassisCenter.x + 3.0;
-  } else if(isRightSide(pos)) {
+  } else if(pos == 5) {
     endX = chassisCenter.x - 3.0;
   } else {
     endX = chassisCenter.x;
@@ -215,18 +248,17 @@ void farSideApproach(int pos) {
   // Takes a wide swing around the right side of the chassis
   approachArray[1] = {chassisCenter.x - 6.0, staging.y, staging.z};
   approachArray[2] = {chassisCenter.x - 6.0, chassisCenter.y, staging.z};
-  approachArray[3] = {chassisCenter.x - 6.0, endY + 3.0, staging.z};
+  approachArray[3] = {chassisCenter.x - 5.0, endY + 1.0, staging.z};
 
   // Settles into its desired x position before dropping into desired z position
-  approachArray[4] = {chassisCenter.x, endY + 3.0, staging.z};
-  approachArray[5] = {endX, endY + 3.0, staging.z};
-  approachArray[6] = {endX, endY + 3.0, endZ};
+  approachArray[4] = {chassisCenter.x, endY + 0.25, staging.z};
+  approachArray[5] = {endX, endY + 0.25, staging.z};
+  approachArray[6] = {endX, endY + 0.25, endZ};
 
   // Walks into final placement position
-  approachArray[7] = {endX, endY + 1.0, endZ};
-  approachArray[8] = {endX, endY, endZ};
+  approachArray[7] = {endX, endY, endZ};
 
-  approachLength = 9;
+  approachLength = 8;
 }
 
 void leftSideApproach(int pos) {
@@ -235,11 +267,11 @@ void leftSideApproach(int pos) {
   float endZ;
 
   endZ = chassisCenter.z;
-  endX = chassisCenter.x + 4.0;
+  endX = chassisCenter.x + 4.0 + 1.0;
 
-  if (isFarSide(pos)) {
+  if (pos == 2) {
     endY = chassisCenter.y + 3.0;
-  } else if (isCloseSide(pos)) {
+  } else if (pos == 0) {
     endY = chassisCenter.y - 3.0;
   } else {
     endY = chassisCenter.y;
@@ -265,11 +297,11 @@ void rightSideApproach(int pos) {
   float endZ;
 
   endZ = chassisCenter.z;
-  endX = chassisCenter.x - 4.0;
+  endX = chassisCenter.x - 4.0 - 1.0;
 
-  if (isFarSide(pos)) {
+  if (pos == 6) {
     endY = chassisCenter.y + 3.0;
-  } else if (isCloseSide(pos)) {
+  } else if (pos == 8) {
     endY = chassisCenter.y - 3.0;
   } else {
     endY = chassisCenter.y;
@@ -299,9 +331,9 @@ void closeSideApproach(int pos) {
   // Wall is 4" from center + 1" for block size
   endY = chassisCenter.y - 4.0 - 1.0;
 
-  if (isLeftSide(pos)) {
+  if (pos == 11) {
     endX = chassisCenter.x + 3.0;
-  } else if(isRightSide(pos)) {
+  } else if(pos == 9) {
     endX = chassisCenter.x - 3.0;
   } else {
     endX = chassisCenter.x;
@@ -309,11 +341,12 @@ void closeSideApproach(int pos) {
 
   // Settles into close staging position
   approachArray[1] = {chassisCenter.x, staging.y, staging.z};
-  approachArray[2] = {chassisCenter.x, staging.y, endZ};
+  approachArray[2] = {endX, staging.y, staging.z};
 
   // Walks into final placement position
-  approachArray[3] = {endX, endY - 1.0, endZ};
-  approachArray[4] = {endX, endY, endZ};
+  approachArray[3] = {endX, endY - 1.0, staging.z};
+  approachArray[4] = {endX, endY - 1.0, endZ};
+  approachArray[5] = {endX, endY, endZ};
 
-  approachLength = 5;
+  approachLength = 6;
 }

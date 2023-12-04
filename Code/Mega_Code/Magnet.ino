@@ -1,17 +1,25 @@
-#define MAGNETPIN 52
+#define MAGNETON 38
+#define MAGNETOFF 40
 
 /*  Sets the magnet control pin to output mode. */
 void magnetSetup() {
-  pinMode(MAGNETPIN, OUTPUT);
-  deactivateMagnet();
+  pinMode(MAGNETON, OUTPUT);
+  pinMode(MAGNETOFF, OUTPUT);
+
+  digitalWrite(MAGNETON, LOW);
+  digitalWrite(MAGNETOFF, LOW);
 }
 
 /*  Turns on the electromagnet. */
 void activateMagnet() {
-  digitalWrite(MAGNETPIN, HIGH);
+  digitalWrite(MAGNETON, HIGH);
+  delay(3);
+  digitalWrite(MAGNETON, LOW);
 }
 
 /*  Turns off the electromagnet. */
 void deactivateMagnet() {
-  digitalWrite(MAGNETPIN, LOW);
+  digitalWrite(MAGNETOFF, HIGH);
+  delay(3);
+  digitalWrite(MAGNETOFF, LOW);
 }

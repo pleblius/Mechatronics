@@ -8,8 +8,6 @@ void loadingService() {
 /*  Services to perform when initiating a block discard. */
 void placingService() {
   generateApproach(blockPosition);
-  nextPoint = getNextPoint();
-  moveToNextPoint();
   state = PLACING;
 }
 
@@ -21,7 +19,7 @@ void placingOperations() {
     // Finished approaching - block should be in discard position
     if (finishedApproaching()) {
       // Turn off magnet and begin returning arms
-      deactivateMagnet(); delay(200);
+      deactivateMagnet();
       approachReturn();
 
       // Initiate movement to next return point
@@ -40,6 +38,8 @@ void placingOperations() {
         acquiringService();
       } else {
         // If block was a valid placement, begin returning to block dispenser
+        nextPoint = homePoint;
+        moveToNextPoint();
         state = FORWARD;
       }
     }

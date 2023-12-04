@@ -12,9 +12,9 @@ void setupOperations() {
       restartService();
     }
     // If invalid block location, exit block early
-    else if (rxInt > 20) {
-      // Error Code 20 - invalid block number
-      sendTransmission('X', 20);
+    else if (rxInt >= 20) {
+      // Block code 19 - invalid block number
+      sendTransmission('B', 19);
     }
     // If queue hasn't been built yet, check for valid-queue build command and initiate build
     else if (!isQueueBuilt()) {
@@ -25,6 +25,8 @@ void setupOperations() {
 
       // Block Code 1 - Prompt user for additional blocks
       sendTransmission('B', 1);
+
+      printQueues();
     }
     // If queue is already built, check for start command
     else if (startTriggered()) {
@@ -36,6 +38,8 @@ void setupOperations() {
 
       // Block Code 1 - Prompt user for additional blocks
       sendTransmission('B', 1);
+
+      printQueues();
     }
     else {
       // Error code 1 - unknown command received
@@ -47,6 +51,7 @@ void setupOperations() {
 /*  Uses the cached rxChar and rxInt to create a new queue, with the random starting block
  *  determined by rxChar at position rxInt. */
 void setupQueue() {
+  Serial.println(rxChar);
   switch (rxChar) {
     case 'W':
     case 'w': {
@@ -92,6 +97,8 @@ bool updateTriggered() {
 void startCompetition() {
   // Start Code 2 - Inform user competition is starting
   sendTransmission('S', 2);
-  
+
+  nextPoint = getHomePoint();
+  moveToNextPoint();
   state = EXITING;
 }

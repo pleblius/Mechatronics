@@ -1,33 +1,34 @@
 // Stepper Pins
-#define ADIR 22
-#define ZDIR 30
-#define TDIR 34
-#define WDIR 26
-#define ASTEP 24
-#define ZSTEP 32
-#define TSTEP 36
-#define WSTEP 28
+#define ADIR 30
+#define ZDIR 26
+#define TDIR 22
+#define WDIR 34
+#define ASTEP 32
+#define ZSTEP 28
+#define TSTEP 24
+#define WSTEP 36
 
 // Stepper characteristics
 float stepSize = 1.8;
+float stepPerDeg = 1/stepSize;                       
 float stepSizeRad = stepSize*PI/180.;
 float stepsPerRev = 360./stepSize;
 float degPerRad = 180.0/PI;
 float radPerDeg = PI/180.0;
 
 // Step-to-degree ratios
-float turretRatio = 7.4;
-float armRatio = 3.5;
-float zRatio = 140.0;
+float turretRatio = 3.3;
+float armRatio = 2.15;
+float zRatio = 120.0;
 
 // Robot parameters (in)
 float zHeight = 8;
-float armLength = 9.5;
-float turretLength = 9.5;
+float armLength = 7.5;
+float turretLength = 7.5;
 
 // Angular offsets in default position (degrees)
-float turretOffset = 45;
-float armOffset = 140;
+float turretOffset = 92;
+float armOffset = 125;
 
 // Stepper constructurs - Motor mode (Driver = 2-pin), Step-pin, Dir-pin
 AccelStepper armMotor = AccelStepper(AccelStepper::DRIVER, ASTEP, ADIR);
@@ -44,15 +45,15 @@ void stepperSetup() {
   armMotor.setCurrentPosition(0);
   wristMotor.setCurrentPosition(0);
 
-  zMotor.setMaxSpeed(300);
-  turretMotor.setMaxSpeed(300);
-  armMotor.setMaxSpeed(300);
-  wristMotor.setMaxSpeed(25);
+  zMotor.setMaxSpeed(500);
+  turretMotor.setMaxSpeed(500);
+  armMotor.setMaxSpeed(500);
+  wristMotor.setMaxSpeed(250);
 
-  zMotor.setAcceleration(150);
-  turretMotor.setAcceleration(150);
-  armMotor.setAcceleration(150);
-  wristMotor.setAcceleration(10);
+  zMotor.setAcceleration(500);
+  turretMotor.setAcceleration(500);
+  armMotor.setAcceleration(500);
+  wristMotor.setAcceleration(150);
 }
 
 /*  Runs the stepper motors */
@@ -85,11 +86,8 @@ void moveArmToAngle(float angle) {
   armMotor.moveTo(armRatio*angle);
 }
 
-/*  Moves the wrist joint to the desired fixed angle (degrees).
- *  Be aware of potential cable issues on excessive rotation.
- */
 void moveWristToAngle(float angle) {
-  wristMotor.moveTo(stepSize*angle);
+  wristMotor.moveTo(stepPerDeg*angle);
 }
 
 /*  Moves the vertical configuration to the desired position.
@@ -97,7 +95,7 @@ void moveWristToAngle(float angle) {
  *  and 1.0 corresponding to maximum height.
  */
 void moveZToPos(float pos) {
-  zMotor.moveTo(zRatio*pos);
+  zMotor.moveTo(-zRatio*pos);
 }
 
 /*  Moves the entire SCARA assembly to the given three-dimensional coordinates, and adjusts the wrist-angle to remain neutral.
@@ -116,14 +114,20 @@ void moveToPos(float x, float y, float z) {
   turretAngle = getTurretAngle(x, y, armAngle) + turretOffset;
   armAngle -= armOffset;
 
+  Serial.println("Turret Angle:");
+  Serial.println(turretAngle);
+  Serial.println("Arm angle:");
+  Serial.println(armAngle);
+
   // Move arms to respective angles
   moveZToPos(zPos);
   moveArmToAngle(armAngle);
   moveTurretToAngle(turretAngle);
 
-  // Adjust wrist to remain in neutral plane (aligned with chassis).
+  // Adjust wrist to remain in neutral plain (aligned with chassis).
   float wristAngle = armAngle + turretAngle;
-  moveWristToAngle(wristAngle);
+  
+  moveWristToAngle(-wristAngle);
 }
 
 /*  Converts the position from cartesian coordinates (in inches) to arm angles theta1 and theta2.
@@ -142,6 +146,9 @@ float getArmAngle(float x, float y) {
 
   float retVal = acos(num/den)*degPerRad;
 
+  Serial.println("Arm angle:");
+  Serial.println(retVal);
+
   // Return angle in degrees
   return retVal;
 }
@@ -157,8 +164,12 @@ float getTurretAngle(float x, float y, float q2) {
   
   num = armLength*sin(q2_rad);
   den = turretLength + armLength*cos(q2_rad);
+
+  Serial.println("Turret Angle:");
   
   float retVal = atan2(y, x)*degPerRad - atan2(num, den)*degPerRad;
+
+  Serial.println(retVal);
 
   return retVal;
 }

@@ -12,9 +12,9 @@
 #define ON true
 bool debugMode;
 
-unsigned long timer = 0;
+float timer = 0.0;
 float dt = 0.0;
-float dtTimer = 5.0;
+float dtTimer = 2.5;
 
 // Holds the robot state. Use MANUAL to manually input commands for testing.
 // All other states are for automatic control/competition.
@@ -65,9 +65,8 @@ struct Point {
 Point nextPoint;
 
 // Traversal distance parameters
-float desForwardDistance = 3.0;
-float desReverseDistance = 13.0;
-float actualReverseDistance = 0.0;
+float desForwardDistance = 4.0;
+float desReverseDistance = 4.0;
 
 // Transmission variables
 char rxChar;
@@ -75,7 +74,7 @@ int rxInt;
 
 void setup() {
   wheelBrake();
-  state = SETUP;
+  state = STARTUP;
   debugMode = ON;
 
   // Set up Comms
@@ -83,9 +82,6 @@ void setup() {
 
   // Set up stepper motors
   stepperSetup();
-
-  // Set up servo motors
-  servoSetup();
 
   // Set up DC motors
   motorSetup();
@@ -106,11 +102,13 @@ void setup() {
 void loop() {
   // Loop timing
   unsigned static long lastUpdate;
-  unsigned long curTime = millis();
-  dt = .001*(curTime - lastUpdate);
+  unsigned long curTime = micros();
+  dt = .000001*(curTime - lastUpdate);
+  lastUpdate = curTime;
 
   // Get IR sensor voltage every loop for filtering.
   getFrontVoltage();
+  getRearVoltage();
 
   switch (state) {
     // Resets the robot to preprare for competition restart.
@@ -123,7 +121,7 @@ void loop() {
       // Block code 0 - prompt user for block input
       sendTransmission('B', 0);
 
-      setupService();
+      state = SETUP;
     } break;
 
     // Block queue setup/update commands. Starts competition when proper command is received.
@@ -137,26 +135,29 @@ void loop() {
       float speed;
       float distance = getFrontDistance();
 
+      Serial.println(distance);
+
+      if (!finishedStepping()) {
+        runSteppers();
+      }
+
       // Ignore intersections
       if (atIntersectionFront()) {
         return;
       }
 
+      Serial.println(distance);
+      
       // Robot has closed the distance - set state to acquiring
       if (distance < desForwardDistance) {
+        Serial.println("Distance Reached.");
         acquiringService();
-        return;
-      }
-      // Robot is closing on button - slow approach
-      else if (distance < 5.0) {
-        speed = (distance - desForwardDistance)*0.2;
       }
       // Normal line-follow
       else {
         speed = 0.4;
+        forwardFollow(speed);
       }
-
-      forwardFollow(speed);
 
       restartCheck();
     } break;
@@ -165,17 +166,25 @@ void loop() {
     case ACQUIRING: {
       static bool forwardFlag = true;
 
-      wheelDrive();
+      PIDDrive();
 
       if (atDestination()) {
         if (forwardFlag) {
+          wheelBrake();
+          delay(50);
+          Serial.println("Forward Distance reached.");
+          // Backup
           forwardFlag = false;
-          driveStraight(-1, 1);
+          driveStraight(-2, 3);
         } else {
+          Serial.println("Backward Distance reached.");
+          // Done backing up
           forwardFlag = true;
 
           wheelBrake();
+          delay(50);
           state = READING;
+          timer = 0.0;
         }
       }
 
@@ -184,8 +193,12 @@ void loop() {
 
     // Checks the block's color and gets the next placement location. Checks for restarts.
     case READING: {
-      Block block;
+      timer += dt;
+      if (timer < dtTimer) return;
 
+      getColor();
+      
+      Block block;
       if (isRed()) {
         block = WHEEL;
       } else if (isBlue()) {
@@ -193,12 +206,12 @@ void loop() {
       } else if (isYellow()) {
         block = BATTERY;
       }
-      // If reading fails reset to acquiring
+      // If reading fails reset
       else {
         acquiringService();
         return;
       }
-
+      
       blockPosition = getNextPosition(block);
 
       // If block is a throwaway, discard it
@@ -256,10 +269,6 @@ void loop() {
       restartCheck();
     }
   }
-
-  if (timer > dtTimer) {
-    timer = 0;
-  }
 }
 
 void moveToNextPoint() {
@@ -277,6 +286,7 @@ void restartCheck() {
 
 /*  Service to initiate block procurement. */
 void acquiringService() {
-  driveStraight(1, 1);
+  driveStraight(2, 2);
+  Serial.println("PID movement.");
   state = ACQUIRING;
 }
