@@ -34,29 +34,9 @@ int buildWheelQueue(Block block, int pos) {
   int queueSize = 6;
   int choice;
 
-  // Check if the random block is on the side.
-  // If it is and it's a wheel, use that side. Otherwise, use the other side.
-  if (contains(queue1, queueSize, pos)) {
-    if (block == WHEEL) {
-      setQueue(wheelQueue, queue1, queueSize, pos);
-      choice = 1;
-    } else {
-      setQueue(wheelQueue, queue2, queueSize, pos);
-      choice = 2;
-    }
-  } else if (contains(queue2, queueSize, pos)) {
-    if (block == WHEEL) {
-      setQueue(wheelQueue, queue2, queueSize, pos);
-      choice = 2;
-    } else {
-      setQueue(wheelQueue, queue1, queueSize, pos);
-      choice = 1;
-    }
-  } else {
-    // Default to first queue
-    setQueue(wheelQueue, queue1, queueSize, pos);
-    choice = 1;
-  }
+  setQueue(wheelQueue, queue1, queueSize, pos);
+
+  choice = 1;
 
   return choice;
 }
@@ -71,36 +51,7 @@ void buildFanQueue(Block block, int pos, int wheelChoice) {
   int queueSize = 4;
   int *queueChoice;
 
-  // Check if the random block is in a queue spot.
-  // If it's a fan, use that queue. Otherwise, if it's on side, use top. 
-  if (contains(queue1, queueSize, pos)) {
-    if (block == FAN) {
-      queueChoice = queue1;
-    } else {
-      queueChoice = queue3;
-    }
-  } else if (contains(queue2, queueSize, pos)) {
-    if (block == FAN) {
-      queueChoice = queue2;
-    } else {
-      queueChoice = queue3;
-    }
-  } else if (contains(queue3, queueSize, pos)) {
-    if (block == FAN) {
-      queueChoice = queue3;
-    } else if (wheelChoice == 1) {
-      queueChoice = queue2;
-    } else {
-      queueChoice = queue1;
-    }
-  }
-  // Since no blocking, use non-wheel side
-  else if (wheelChoice == 1) {
-    queueChoice = queue2;
-  }
-  else {
-    queueChoice = queue1;
-  }
+  queueChoice = queue3;
 
   setQueue(fanQueue, queueChoice, queueSize, pos);
 }
@@ -110,19 +61,21 @@ void buildFanQueue(Block block, int pos, int wheelChoice) {
  */
 void buildBatteryQueue(Block block, int pos) {
   int queueSize = 10;
-  int queue[queueSize];
+  int queue[4] = {13, 15, 17, 19};
   int index = 0;
 
-  // Iterate through all 20 positions, checking if they're captured by the
-  // wheel or fan queues. If not, add it to battery queue.
-  for (int i = 0; i < 20; i++) {
-    if (!contains(wheelQueue.queue, wheelQueue.size, i) && !contains(fanQueue.queue, fanQueue.size, i)) {
-      queue[index] = i;
-      index++;
-    }
-  }
+  // // Iterate through all 20 positions, checking if they're captured by the
+  // // wheel or fan queues. If not, add it to battery queue.
+  // for (int i = 0; i < 20; i++) {
+  //   if (!contains(wheelQueue.queue, wheelQueue.size, i) && !contains(fanQueue.queue, fanQueue.size, i)) {
+  //     queue[index] = i;
+  //     index++;
+  //   }
+  // }
 
-  setQueue(batteryQueue, queue, queueSize, pos);
+  // queue = {9, 10, 11, 13, 15, 17, 19, -1, -1, -1};
+
+  setQueue(batteryQueue, queue, 4, pos);
 }
 
 /*  Sets the queue structure for one of the given block types to the queue information provided.

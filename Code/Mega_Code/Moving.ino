@@ -2,7 +2,7 @@
 void backingOperations() {
   static bool firstLeg = true;
   static bool turning = false;
-  float speed = 0.4;
+  float speed = 0.5;
 
   if (!finishedStepping()) {
     runSteppers();
@@ -21,10 +21,11 @@ void backingOperations() {
   else if (firstLeg) {
     // When intersection is reached, turn to follow branch
     if (atIntersectionRear()) {
+      wheelBrake();
       turning = true;
-      turn(-2, -3);
+      rotate(85, 5);
     } else {
-      reverseFollow(speed);
+      reverseFollow(.3);
     }
   }
   // If on second leg, line follow for desired distance
@@ -34,7 +35,7 @@ void backingOperations() {
       loadingService();
       firstLeg = true;
     } else {
-      reverseFollow(speed);
+      reverseFollow(.4);
     }
   }
 
@@ -66,7 +67,7 @@ void forwardOperations() {
     // When intersection is reached, turn to follow branch
     if (atIntersectionFront()) {
       turning = true;
-      turn(-2, 3);
+      rotate(-82, 5);
     } else {
       forwardFollow(speed);
     }
@@ -76,6 +77,7 @@ void forwardOperations() {
     // Robot has closed the distance - set state to acquiring
     if (distance < desForwardDistance) {
       acquiringService();
+      firstLeg = true;
       return;
     }
     // Robot is closing on button - slow approach
@@ -84,7 +86,7 @@ void forwardOperations() {
     }
     // Normal line-follow
     else {
-      speed = 0.4;
+      speed = 0.3;
     }
 
     forwardFollow(speed);

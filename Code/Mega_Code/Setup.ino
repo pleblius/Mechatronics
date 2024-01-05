@@ -96,8 +96,5 @@ bool updateTriggered() {
 void startCompetition() {
   // Start Code 2 - Inform user competition is starting
   sendTransmission('S', 2);
-
-  nextPoint = getHomePoint();
-  moveToNextPoint();
   state = EXITING;
 }

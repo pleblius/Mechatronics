@@ -27,7 +27,7 @@
 // Sensors
 QTRSensors front, rear;
 #define REARCOUNT 13
-#define FRONTCOUNT 8
+#define FRONTCOUNT 7
 uint16_t rearValues[REARCOUNT];
 uint16_t frontValues[FRONTCOUNT];
 
@@ -35,8 +35,8 @@ uint16_t frontValues[FRONTCOUNT];
 uint16_t rearBaseValues[REARCOUNT]{220, 220, 220, 220, 220, 220, 220, 220, 220, 220, 220, 220, 220};
 uint16_t rearMaxValues[REARCOUNT]{2140, 1484, 1564, 1556, 1404, 1564, 1804, 1804, 1968, 1644, 1564, 1484, 1804};
 
-uint16_t frontBaseValues[FRONTCOUNT]{140, 140, 92, 140, 92, 140, 92, 140};
-uint16_t frontMaxValues[FRONTCOUNT]{2340, 2084, 1416, 1936, 1700, 2088, 1748, 1888};
+uint16_t frontBaseValues[FRONTCOUNT]{40, 40, 40, 40, 40, 40, 40};
+uint16_t frontMaxValues[FRONTCOUNT]{732, 856, 772, 856, 856, 856, 1036};
 
 // Proportionality Constants
 float RKp, FKp;
@@ -53,11 +53,11 @@ void arraySetup() {
   rear.setEmitterPin(RIN);
 
   front.setTypeRC();
-  front.setSensorPins((const uint8_t[]){FL1, FL2, FL3, FL4, FL5, FL6, FL7, FL8}, FRONTCOUNT);
+  front.setSensorPins((const uint8_t[]){FL2, FL3, FL4, FL5, FL6, FL7, FL8}, FRONTCOUNT);
   front.setEmitterPin(FIN);
 
-  RKp = 0.12;
-  FKp = 0.12;
+  RKp = 0.20;
+  FKp = 0.20;
 }
 
 /*  Sets the forward wheel speed based on the provided desired speed and the
@@ -114,8 +114,12 @@ float getReverseError() {
   float d0 = 7;
 
   rear.read(rearValues);
-
-  mapRearReadings();
+  
+  Serial.println("Rear:");
+  for (int i = 0; i < REARCOUNT; i++) {
+    Serial.print(rearValues[i]); Serial.print(" ");
+  }
+  //mapRearReadings();
 
   // Calculate which sensor the line is centered beneath
   float location = getRearLineLocation();
@@ -154,6 +158,7 @@ float getFrontLineLocation() {
   for (int i = 0; i < FRONTCOUNT; i++) {
     readingSum += frontValues[i];
     weightedSum += frontValues[i]*long(i+1);
+    Serial.println(frontValues[i]);
   }
 
   float location = (float)weightedSum / (float)readingSum;
@@ -189,7 +194,7 @@ bool atIntersectionFront() {
     }
   }
 
-  if (triggerCount > 2) {
+  if (triggerCount > lineThickness) {
     return true;
   }
 
@@ -209,7 +214,7 @@ bool atIntersectionRear() {
     }
   }
 
-  if (triggerCount > 3) {
+  if (triggerCount > lineThickness) {
     return true;
   }
 

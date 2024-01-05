@@ -14,7 +14,7 @@ bool debugMode;
 
 float timer = 0.0;
 float dt = 0.0;
-float dtTimer = 2.5;
+float dtTimer = 3.5;
 
 // Holds the robot state. Use MANUAL to manually input commands for testing.
 // All other states are for automatic control/competition.
@@ -65,8 +65,8 @@ struct Point {
 Point nextPoint;
 
 // Traversal distance parameters
-float desForwardDistance = 2;
-float desReverseDistance = 4.0;
+float desForwardDistance = 4;
+float desReverseDistance = 2;
 
 // Transmission variables
 char rxChar;
@@ -150,8 +150,9 @@ void loop() {
       }
       // Normal line-follow
       else {
-        speed = 0.6;
+        speed = 0.4;
         forwardFollow(speed);
+        Serial.println(distance);
       }
 
       restartCheck();
@@ -166,7 +167,6 @@ void loop() {
       if (atDestination()) {
         if (forwardFlag) {
           wheelBrake();
-          delay(100);
           Serial.println("Forward Distance reached.");
           // Backup
           forwardFlag = false;
@@ -283,6 +283,6 @@ void restartCheck() {
 
 /*  Service to initiate block procurement. */
 void acquiringService() {
-  driveStraight(2, 5);
+  driveStraight(3, 5);
   state = ACQUIRING;
 }

@@ -92,7 +92,7 @@ float getRearVoltage() {
  */
 float filterOutput(float curInput, float prevInput) {
   // Filter weight
-  float alpha = 0.02;
+  float alpha = 0.2;
 
   return alpha*curInput + (1.0 - alpha)*prevInput;
 }
